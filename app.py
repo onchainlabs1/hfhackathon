@@ -235,43 +235,46 @@ def format_next_step_display(next_step: str) -> str:
 
 # Configure Gradio theme
 theme = gr.themes.Soft(
-    primary_hue="indigo", secondary_hue="blue", neutral_hue="slate"
+    primary_hue="indigo",
+    secondary_hue="blue",
+    neutral_hue="slate"
 ).set(
     body_background_fill="*neutral_50",
     block_background_fill="white",
     block_label_background_fill="*primary_100",
-    button_primary_background_fill="*primary_600",
+    button_primary_background_fill="*primary_600"
 )
 
 # Create the Gradio interface
-with gr.Blocks(theme=theme, title="Thread - The Agent that Connects the Dots") as app:
-    gr.Markdown(
-        """
+with gr.Blocks(
+    theme=theme,
+    title="Thread - The Agent that Connects the Dots"
+) as app:
+    gr.Markdown("""
     # 🧠 Thread - The Agent that Connects the Dots
     **Thread** is a memory-aware conversational agent powered by **GroqCloud**.
     It retrieves relevant past context and helps you think across conversations.
-    """
-    )
+    """)
 
     # API Configuration Section
-    with gr.Accordion("🔐 Configure API", open=False):
+    with gr.Accordion("🔐 Configure API", open=True):
         with gr.Row():
             with gr.Column(scale=3):
                 api_key_input = gr.Textbox(
                     label="Groq API Key",
                     placeholder="Enter your Groq API key here...",
                     type="password",
-                    info="Get yours at https://console.groq.com/",
+                    info="Get yours at https://console.groq.com/"
                 )
             with gr.Column(scale=1):
                 save_key_btn = gr.Button("💾 Save Key", variant="primary")
                 refresh_btn = gr.Button("🔄 Refresh", variant="secondary")
-
+        
         api_status = gr.Markdown(
             value=check_api_key(),
             elem_classes=[
                 "status-positive" if os.getenv("GROQ_API_KEY") else "status-negative"
-            ],
+            ]
         )
 
     # Main Interface
@@ -282,17 +285,20 @@ with gr.Blocks(theme=theme, title="Thread - The Agent that Connects the Dots") a
                 with gr.Column(scale=1):
                     current_topic_display = gr.Markdown(
                         value=format_topic_display(agent.current_topic),
-                        elem_classes=["topic-display"],
+                        elem_classes=["topic-display"]
                     )
                 with gr.Column(scale=1):
                     next_step_display = gr.Markdown(
                         value=format_next_step_display(agent.suggested_next_step),
-                        elem_classes=["next-step-display"],
+                        elem_classes=["next-step-display"]
                     )
-
+            
             # Chat Interface
             chatbot = gr.Chatbot(
-                label="💬 Conversation", height=500, show_copy_button=True
+                label="💬 Conversation",
+                height=500,
+                show_copy_button=True,
+                type="messages"  # ✅ Required for Gradio 5 and Hugging Face Spaces
             )
             with gr.Row():
                 msg_input = gr.Textbox(
@@ -300,6 +306,7 @@ with gr.Blocks(theme=theme, title="Thread - The Agent that Connects the Dots") a
                     placeholder="Type your message here...",
                     scale=9,
                     lines=1,
+                    container=False
                 )
                 send_btn = gr.Button("Send", scale=1, variant="primary")
 
@@ -308,61 +315,54 @@ with gr.Blocks(theme=theme, title="Thread - The Agent that Connects the Dots") a
             memory_panel = gr.Markdown(
                 label="🧠 Memory Panel",
                 value=get_initial_memory_panel(),
-                elem_classes=["memory-panel"],
+                elem_classes=["memory-panel"]
             )
             with gr.Row():
                 stats_btn = gr.Button("📊 Stats", variant="secondary")
                 clear_btn = gr.Button("🗑️ Reset", variant="secondary")
 
-    gr.Markdown(
-        """
+    gr.Markdown("""
     ---
     💡 **Tips**:
     - Save your Groq API key to enable AI responses
     - The memory panel will display relevant memories after each input
-    """
-    )
+    """)
 
     # Event handlers
     save_key_btn.click(
         save_groq_key_and_clear,
         inputs=[api_key_input],
-        outputs=[api_key_input, api_status],
+        outputs=[api_key_input, api_status]
     )
     refresh_btn.click(check_api_key, outputs=[api_status])
-
+    
     send_btn.click(
-        process_message,
-        inputs=[msg_input, chatbot],
+        process_message, 
+        inputs=[msg_input, chatbot], 
         outputs=[
-            msg_input,
-            chatbot,
-            memory_panel,
-            current_topic_display,
-            next_step_display,
-        ],
+            msg_input, chatbot, memory_panel, 
+            current_topic_display, next_step_display
+        ]
     )
     msg_input.submit(
-        process_message,
-        inputs=[msg_input, chatbot],
+        process_message, 
+        inputs=[msg_input, chatbot], 
         outputs=[
-            msg_input,
-            chatbot,
-            memory_panel,
-            current_topic_display,
-            next_step_display,
-        ],
+            msg_input, chatbot, memory_panel, 
+            current_topic_display, next_step_display
+        ]
     )
-
+    
     stats_btn.click(show_memory_stats, outputs=[memory_panel])
     clear_btn.click(clear_all_memory, outputs=[memory_panel])
 
 
-# Application entry point
+# Launch the app
 if __name__ == "__main__":
     print("🚀 Starting Thread application with GroqCloud integration...")
     try:
-        app.launch(server_port=7862, show_error=True, debug=False)
+        from config import GRADIO_CONFIG
+        app.launch(**GRADIO_CONFIG)
         print("✅ Application started successfully!")
     except Exception as e:
         print(f"❌ Error starting application: {str(e)}")
