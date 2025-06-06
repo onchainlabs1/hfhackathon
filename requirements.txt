@@ -1,12 +1,12 @@
 # Core dependencies
-gradio==4.44.1
+gradio==4.13.0
 groq==0.4.1
 python-dotenv==1.0.1
 
 # Scientific computing and ML
-numpy==1.26.4
+numpy==1.24.3
 faiss-cpu==1.7.4
-sentence-transformers==2.5.1
+sentence-transformers==2.2.2
 
 # Web server
 aiohttp==3.9.3

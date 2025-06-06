@@ -238,17 +238,13 @@ theme = gr.themes.Soft(
     primary_hue="indigo",
     secondary_hue="blue",
     neutral_hue="slate"
-).set(
-    body_background_fill="*neutral_50",
-    block_background_fill="white",
-    block_label_background_fill="*primary_100",
-    button_primary_background_fill="*primary_600"
 )
 
 # Create the Gradio interface
 with gr.Blocks(
     theme=theme,
-    title="Thread - The Agent that Connects the Dots"
+    title="Thread - The Agent that Connects the Dots",
+    css="#chatbot {height: 500px; overflow-y: auto;}"
 ) as app:
     gr.Markdown("""
     # 🧠 Thread - The Agent that Connects the Dots
@@ -295,10 +291,12 @@ with gr.Blocks(
             
             # Chat Interface
             chatbot = gr.Chatbot(
+                [],  # Empty initial messages
+                elem_id="chatbot",
                 label="💬 Conversation",
-                height=500,
                 show_copy_button=True,
-                type="messages"  # ✅ Required for Gradio 5 and Hugging Face Spaces
+                type="messages",  # OpenAI-style format
+                height=450
             )
             with gr.Row():
                 msg_input = gr.Textbox(
@@ -361,8 +359,18 @@ with gr.Blocks(
 if __name__ == "__main__":
     print("🚀 Starting Thread application with GroqCloud integration...")
     try:
-        from config import GRADIO_CONFIG
-        app.launch(**GRADIO_CONFIG)
+        app.launch(
+            server_name="0.0.0.0",
+            server_port=int(os.getenv("GRADIO_SERVER_PORT", "7860")),
+            share=not bool(os.getenv("SPACE_ID")),
+            debug=False,
+            show_error=True,
+            quiet=True,
+            show_api=False,
+            enable_queue=False,
+            max_threads=1,
+            ssr_mode=False  # Disable SSR for better compatibility
+        )
         print("✅ Application started successfully!")
     except Exception as e:
         print(f"❌ Error starting application: {str(e)}")
