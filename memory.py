@@ -3,6 +3,7 @@ Vector-based memory system for the Thread agent using FAISS and SentenceTransfor
 Handles storage and retrieval of conversation memories through semantic similarity.
 """
 
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -11,6 +12,9 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+# Increase timeout and add retries for model download
+os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = "100"
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
 
 @dataclass
 class MemoryEntry:
@@ -35,9 +39,21 @@ class MemoryManager:
     """Vector-based memory management system using FAISS."""
 
     def __init__(self):
-        # Initialize the sentence transformer model
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
-        self.embedding_dim = 384  # Dimension of all-MiniLM-L6-v2 embeddings
+        # Try to initialize with a smaller model first
+        try:
+            self.model = SentenceTransformer("paraphrase-MiniLM-L3-v2")
+            self.embedding_dim = 384
+        except Exception as e:
+            print(f"Failed to load primary model: {e}")
+            try:
+                # Fallback to an even smaller model
+                self.model = SentenceTransformer("paraphrase-albert-small-v2")
+                self.embedding_dim = 768
+            except Exception as e:
+                print(f"Failed to load fallback model: {e}")
+                # Last resort: use a basic embedding
+                self.model = None
+                self.embedding_dim = 100
 
         # Initialize FAISS index for vector similarity search
         self.index = faiss.IndexFlatL2(self.embedding_dim)
@@ -47,6 +63,20 @@ class MemoryManager:
 
         # Track statistics
         self.total_entries = 0
+
+    def _get_embedding(self, text: str) -> np.ndarray:
+        """Get embedding for text with fallback options."""
+        if self.model is not None:
+            try:
+                return self.model.encode([text])[0]
+            except Exception as e:
+                print(f"Error generating embedding with model: {e}")
+
+        # Fallback: Generate a simple embedding based on character counts
+        simple_embedding = np.zeros(self.embedding_dim)
+        for i, char in enumerate(text):
+            simple_embedding[i % self.embedding_dim] = ord(char)
+        return simple_embedding / np.linalg.norm(simple_embedding)
 
     def add_entry(
         self, text: str, source: str = "conversation", metadata: Optional[Dict] = None
@@ -66,65 +96,79 @@ class MemoryManager:
         self.memories.append(entry)
 
         # Generate and add embedding to FAISS index
-        embedding = self.model.encode([text])[0]  # Get the first (and only) embedding
-        embedding_normalized = embedding.reshape(1, -1).astype(np.float32)
-        self.index.add(embedding_normalized)
+        try:
+            embedding = self._get_embedding(text)
+            embedding_normalized = embedding.reshape(1, -1).astype(np.float32)
+            self.index.add(embedding_normalized)
+            self.total_entries += 1
+        except Exception as e:
+            print(f"Error adding entry to memory: {e}")
 
-        self.total_entries += 1
-
-    def retrieve_similar(self, query: str, top_k: int = 3) -> List[Dict]:
+    def retrieve_similar(
+        self, query: str, top_k: int = 3, threshold: float = 0.6
+    ) -> List[Dict]:
         """
-        Retrieve the top-k most similar memories to the query.
+        Retrieve similar memories using vector similarity.
 
         Args:
-            query: The text to find similar memories for
+            query: The query text to find similar memories for
             top_k: Number of similar memories to retrieve
+            threshold: Similarity threshold (0-1)
 
         Returns:
-            List of memory entries with similarity scores
+            List of similar memory entries with similarity scores
         """
         if self.total_entries == 0:
             return []
 
-        # Adjust top_k if we have fewer entries
-        top_k = min(top_k, self.total_entries)
+        try:
+            # Generate query embedding
+            query_embedding = self._get_embedding(query)
+            query_embedding = query_embedding.reshape(1, -1).astype(np.float32)
 
-        # Generate query embedding
-        query_embedding = self.model.encode([query])[0]
-        query_embedding = query_embedding.reshape(1, -1).astype(np.float32)
+            # Search the index
+            distances, indices = self.index.search(query_embedding, min(top_k, self.total_entries))
 
-        # Search the FAISS index
-        distances, indices = self.index.search(query_embedding, top_k)
+            # Format results
+            results = []
+            for i, (dist, idx) in enumerate(zip(distances[0], indices[0])):
+                if idx < len(self.memories):  # Ensure valid index
+                    similarity = 1 / (1 + dist)  # Convert distance to similarity score
+                    if similarity >= threshold:
+                        memory = self.memories[idx]
+                        results.append({
+                            **memory.to_dict(),
+                            "similarity": similarity
+                        })
 
-        # Format results
-        results = []
-        for idx, distance in zip(indices[0], distances[0]):
-            memory = self.memories[idx]
-            similarity_score = 1.0 / (
-                1.0 + distance
-            )  # Convert distance to similarity score
+            return sorted(results, key=lambda x: x["similarity"], reverse=True)
 
-            results.append(
-                {**memory.to_dict(), "similarity": round(similarity_score, 3)}
-            )
-
-        return results
+        except Exception as e:
+            print(f"Error retrieving similar memories: {e}")
+            return []
 
     def reset(self) -> None:
-        """Clear all memories and reset the FAISS index."""
+        """Reset the memory system."""
         self.index = faiss.IndexFlatL2(self.embedding_dim)
         self.memories.clear()
         self.total_entries = 0
 
     def get_stats(self) -> Dict:
-        """Get current memory statistics."""
+        """
+        Get memory statistics.
+
+        Returns:
+            Dictionary containing memory statistics
+        """
+        latest_timestamp = None
+        if self.memories:
+            latest_timestamp = max(m.timestamp for m in self.memories)
+
         return {
             "total_entries": self.total_entries,
-            "index_size_bytes": self.index.ntotal
-            * self.embedding_dim
-            * 4,  # 4 bytes per float32
+            "index_size_bytes": self.total_entries * self.embedding_dim * 4,  # 4 bytes per float
             "embedding_dim": self.embedding_dim,
-            "latest_timestamp": self.memories[-1].timestamp if self.memories else None,
+            "latest_timestamp": latest_timestamp,
         }
 
     def get_all_entries(self) -> List[Dict]:
