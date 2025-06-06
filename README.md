@@ -1,3 +1,21 @@
+---
+title: Thread Agent
+emoji: 🧠
+colorFrom: indigo
+colorTo: purple
+sdk: gradio
+sdk_version: 4.44.0
+app_file: main.py
+pinned: false
+license: mit
+tags:
+  - agent-demo-track
+  - memory
+  - conversational-ai
+  - groq
+  - faiss
+---
+
 # 🧠 Thread - The Agent that Connects the Dots
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
@@ -6,33 +24,35 @@
 [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Agents-MCP-Hackathon/thread-agent)
 [![agent-demo-track](https://img.shields.io/badge/track-agent--demo-orange)](https://huggingface.co/spaces/Agents-MCP-Hackathon/thread-agent)
 
-**Thread** is a memory-aware conversational AI agent that connects information across conversations. It features sophisticated semantic memory management, intelligent topic detection, and context-aware response generation powered by GroqCloud's Llama3-70B model.
+**Thread** is a memory-aware conversational agent that bridges past conversations with present context. Built for the Hugging Face Agents Hackathon, Thread demonstrates sophisticated memory management through semantic similarity search and vector embeddings.
 
 ## 🎥 Demo Video
 
 [Coming Soon] Watch Thread in action, demonstrating its memory capabilities and topic detection.
 
-## ✨ Features
+## 🎯 **Core Features**
 
 ### 🧠 **Semantic Memory System**
-- **FAISS Vector Database**: High-performance similarity search using sentence embeddings
-- **Persistent Context**: Remembers and connects information across conversations
-- **Real-time Memory Display**: Shows relevant memories with similarity scores
-- **Memory Analytics**: Detailed statistics and insights
+- **Vector-based memory** using FAISS + SentenceTransformers
+- **Contextual retrieval** of relevant past conversations
+- **Persistent knowledge** across conversations
+- **Real-time similarity scoring** for memory relevance
 
-### 🎯 **Intelligent Topic Detection**
-- **Automatic Classification**: Detects conversation topics from 7 domains
-- **Dynamic Tracking**: Updates topic focus as conversations evolve
-- **Context-Aware Prompts**: Tailors responses based on detected topics
+### 💬 **Intelligent Conversation**
+- **GroqCloud integration** for fast, high-quality responses
+- **Context-aware responses** informed by memory
+- **Topic detection** and conversation flow tracking
+- **Suggested next steps** based on conversation patterns
 
-### 💡 **Smart Suggestions**
-- **Next Step Recommendations**: AI-generated actionable suggestions
-- **Domain-Specific Guidance**: Specialized advice for different topic areas
-- **Progress Tracking**: Helps users advance their thinking
+### 📊 **Memory Analytics**
+- **Live memory statistics** and usage tracking
+- **Vector index monitoring** and performance metrics
+- **Conversation history** with relevance scoring
+- **Memory management** tools (reset, statistics)
 
-## 🚀 Getting Started
+## 🚀 **Quick Start**
 
-### 1. **Get Your GroqCloud API Key**
+### 1. **Get Your Groq API Key**
 - Sign up at [console.groq.com](https://console.groq.com/)
 - Create a new API key
 - Copy your API key
@@ -46,10 +66,10 @@
 ### 3. **Start Conversing**
 - Type your message in the chat input
 - Watch the memory panel for relevant past context
-- Observe topic detection and next step suggestions
+- Observe real-time memory retrieval and relevance scoring
 - Use the memory panel to track conversation history
 
-## 🧪 Example Conversations
+## 🧪 **Example Conversations**
 
 Try these topics to see Thread's capabilities:
 
@@ -71,37 +91,56 @@ Try these topics to see Thread's capabilities:
 "How should we analyze this dataset?"
 ```
 
-## 🔧 Memory Management
+## 🔧 **Memory Management**
 
 Use the memory panel controls:
 - **📊 Stats**: View detailed memory statistics
-- **🗑️ Reset**: Clear all memories to start fresh
+- **🗑️ Clear**: Reset all memories to start fresh
 - **Similar Memories**: See real-time relevant context
 
-## 🛠️ Space Configuration
+## 🛠️ **Technical Architecture**
 
-The Hugging Face Space is configured with:
-- Python 3.11
-- Gradio 4.44.0
-- 16GB RAM
-- No GPU required
+### **Memory System**
+- **SentenceTransformers**: `all-MiniLM-L6-v2` for text embeddings
+- **FAISS**: Vector similarity search with L2 distance
+- **384-dimensional vectors** for semantic representation
+- **Jaccard similarity** for memory relevance scoring
 
-### Environment Variables
+### **AI Integration**
+- **GroqCloud API**: Fast inference with Llama3-70B model
+- **Context window**: 8K tokens with memory-informed prompts
+- **Response generation**: Temperature 0.7 for balanced creativity
+- **Error handling**: Graceful fallbacks and user feedback
 
-Required:
-- `GROQ_API_KEY`: Your GroqCloud API key
+## 🎯 **Hackathon Track: Agent Demo**
 
-Automatically set:
-- `GRADIO_SERVER_NAME`: 0.0.0.0
-- `GRADIO_SERVER_PORT`: 7860
-- `PYTHONUNBUFFERED`: 1
+Thread is submitted under the **agent-demo-track** for the Hugging Face Agents Hackathon. It showcases:
 
-### Deployment Notes
+- **Advanced memory management** with vector embeddings
+- **Semantic search** for contextual conversation
+- **Real-time analytics** and memory visualization
+- **Production-ready deployment** on Hugging Face Spaces
 
-1. The app runs on port 7860
-2. Memory system uses FAISS for vector search
-3. No persistent storage - memory resets on Space restart
-4. API key must be set in Space settings
+## 🔗 **Links**
+
+- **Live Demo**: [Thread Agent Space](https://huggingface.co/spaces/Agents-MCP-Hackathon/thread-agent)
+- **Source Code**: Available in this repository
+- **Hackathon**: [Hugging Face Agents Hackathon](https://huggingface.co/blog/agents-hackathon)
+
+## 🤝 **Contributing**
+
+This project is part of the Hugging Face Agents Hackathon. Feel free to:
+- Submit issues for bugs or feature requests
+- Fork and create pull requests
+- Share your experience and suggestions
+
+## 📄 **License**
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+*Built with ❤️ for the Hugging Face Agents Hackathon*
 
 ## 🤝 Contributing
 

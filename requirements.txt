@@ -1,6 +1,6 @@
-gradio
-groq
-faiss-cpu
-sentence-transformers
-torch
-python-dotenv 
+gradio==4.44.0
+groq==0.4.1
+faiss-cpu==1.7.4
+sentence-transformers==2.2.2
+torch==2.0.1
+python-dotenv==1.0.1 
