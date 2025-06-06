@@ -1,3 +1,0 @@
-FORCE REBUILD - 2025-06-06 21:03
-This file forces Hugging Face to rebuild the Space with main.py instead of app.py
-Delete after successful rebuild. 
