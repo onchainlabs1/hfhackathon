@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer
 
 def get_embedding_model():
     """Get the embedding model with persistent cache for Hugging Face Spaces."""
-    return SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", cache_folder="/tmp/st")
+    return SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", cache_folder="/data/models")
 
 
 class MemoryEntry:
