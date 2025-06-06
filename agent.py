@@ -121,6 +121,19 @@ class ThreadAgent:
         except Exception:
             return None
 
+    def reload_groq_client(self) -> bool:
+        """
+        Reload Groq client from current environment variables.
+        
+        This method should be called after updating the GROQ_API_KEY
+        environment variable to apply the new API key.
+        
+        Returns:
+            True if client was successfully reloaded, False otherwise
+        """
+        self.groq_client = self._initialize_groq_client()
+        return self.groq_client is not None
+
     def _detect_topic(self, message: str) -> str:
         """
         Detect conversation topic based on keywords in the message.

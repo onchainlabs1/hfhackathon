@@ -116,6 +116,32 @@ Get actionable next steps based on your conversation:
 - Adjust memory similarity thresholds in `memory.py`
 - Customize UI styling in `app.py`
 
+## 🧪 Testing
+
+The project includes comprehensive unit tests for core functionality.
+
+### Running Tests
+
+1. **Install test dependencies**
+```bash
+pip install -r tests/requirements-test.txt
+```
+
+2. **Run all tests**
+```bash
+# Using pytest
+pytest tests/
+
+# Or run individual test files
+python tests/test_memory.py
+python tests/test_agent.py
+```
+
+3. **Test coverage includes**
+- Memory system (add_entry, retrieve_similar, reset)
+- Agent initialization and core methods
+- Error handling and edge cases
+
 ## 📸 Screenshots
 
 ### Main Interface
