@@ -124,10 +124,10 @@ class ThreadAgent:
     def reload_groq_client(self) -> bool:
         """
         Reload Groq client from current environment variables.
-        
+
         This method should be called after updating the GROQ_API_KEY
         environment variable to apply the new API key.
-        
+
         Returns:
             True if client was successfully reloaded, False otherwise
         """

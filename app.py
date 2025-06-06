@@ -63,7 +63,7 @@ def save_groq_key_and_clear(api_key: str) -> Tuple[str, str]:
         Tuple of (empty_string, status_message)
     """
     status = save_groq_key(api_key)
-    
+
     # Reload the Groq client to apply the new API key
     if "Success" in status:
         success = agent.reload_groq_client()
@@ -71,7 +71,7 @@ def save_groq_key_and_clear(api_key: str) -> Tuple[str, str]:
             status += " - Client reloaded successfully"
         else:
             status += " - Warning: Client reload failed"
-    
+
     return "", status
 
 
