@@ -234,18 +234,10 @@ def format_next_step_display(next_step: str) -> str:
 
 
 # Configure Gradio theme
-theme = gr.themes.Soft(
-    primary_hue="indigo",
-    secondary_hue="blue",
-    neutral_hue="slate"
-)
+theme = gr.themes.Default()
 
 # Create the Gradio interface
-with gr.Blocks(
-    theme=theme,
-    title="Thread - The Agent that Connects the Dots",
-    css="#chatbot {height: 500px; overflow-y: auto;}"
-) as app:
+with gr.Blocks(theme=theme) as app:
     gr.Markdown("""
     # 🧠 Thread - The Agent that Connects the Dots
     **Thread** is a memory-aware conversational agent powered by **GroqCloud**.
@@ -291,20 +283,17 @@ with gr.Blocks(
             
             # Chat Interface
             chatbot = gr.Chatbot(
-                [],  # Empty initial messages
-                elem_id="chatbot",
+                value=[],
                 label="💬 Conversation",
-                show_copy_button=True,
-                type="messages",  # OpenAI-style format
-                height=450
+                height=450,
+                type="messages"
             )
             with gr.Row():
                 msg_input = gr.Textbox(
                     label="Your message",
                     placeholder="Type your message here...",
                     scale=9,
-                    lines=1,
-                    container=False
+                    lines=1
                 )
                 send_btn = gr.Button("Send", scale=1, variant="primary")
 
@@ -369,7 +358,7 @@ if __name__ == "__main__":
             show_api=False,
             enable_queue=False,
             max_threads=1,
-            ssr_mode=False  # Disable SSR for better compatibility
+            ssr=False  # Disable SSR completely
         )
         print("✅ Application started successfully!")
     except Exception as e:
