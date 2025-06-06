@@ -5,7 +5,7 @@ colorFrom: indigo
 colorTo: purple
 sdk: gradio
 sdk_version: 4.44.0
-app_file: main.py
+app_file: index.py
 pinned: false
 license: mit
 tags:
