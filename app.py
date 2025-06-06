@@ -90,8 +90,8 @@ async def process_message(
     """
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key or not api_key.strip():
-        history.append(("user", message))
-        history.append(("assistant", "⚠️ Please configure your Groq API key first!"))
+        history.append({"role": "user", "content": message})
+        history.append({"role": "assistant", "content": "⚠️ Please configure your Groq API key first!"})
         return (
             "",
             history,
@@ -104,8 +104,8 @@ async def process_message(
     similar_memories = agent.memory.retrieve_similar(message, top_k=3)
     memory_display = format_memory_panel(base_memory_content, similar_memories)
 
-    history.append(("user", message))
-    history.append(("assistant", response))
+    history.append({"role": "user", "content": message})
+    history.append({"role": "assistant", "content": response})
 
     return (
         "",
