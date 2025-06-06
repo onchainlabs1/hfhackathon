@@ -1,8 +1,19 @@
-"""Simple text-based memory management system."""
+"""
+Vector-based memory system for the Thread agent using FAISS and SentenceTransformers.
+Handles storage and retrieval of conversation memories through semantic similarity.
+"""
 
-import re
 from datetime import datetime
 from typing import Dict, List, Optional
+
+import faiss
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+
+def get_embedding_model():
+    """Get the embedding model with persistent cache for Hugging Face Spaces."""
+    return SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", cache_folder="/tmp/st")
 
 
 class MemoryEntry:
@@ -31,129 +42,99 @@ class MemoryEntry:
 
 
 class MemoryManager:
-    """Simple text-based memory management system."""
+    """Vector-based memory management system using FAISS."""
 
     def __init__(self):
-        # Store raw memory entries
+        # Initialize the sentence transformer model with optimized caching
+        self.model = get_embedding_model()
+        self.embedding_dim = 384  # Dimension of all-MiniLM-L6-v2 embeddings
+
+        # Initialize FAISS index for vector similarity search
+        self.index = faiss.IndexFlatL2(self.embedding_dim)
+
+        # Store raw memory entries for retrieval
         self.memories: List[MemoryEntry] = []
+
+        # Track statistics
         self.total_entries = 0
-
-    def _extract_keywords(self, text: str) -> List[str]:
-        """Extract keywords from text for similarity matching."""
-        # Convert to lowercase and remove punctuation
-        text = re.sub(r'[^\w\s]', ' ', text.lower())
-        
-        # Split into words and filter out short words
-        words = [word for word in text.split() if len(word) > 2]
-        
-        # Remove common stop words
-        stop_words = {
-            'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 
-            'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'who', 'boy', 
-            'did', 'she', 'use', 'way', 'will', 'with', 'this', 'that', 'they', 'have', 'from', 'been', 'said', 
-            'each', 'which', 'would', 'there', 'their', 'what', 'make', 'about', 'time', 'very', 'when', 'come', 
-            'could', 'like', 'into', 'him', 'than', 'find', 'call', 'down', 'first', 'look', 'made', 'more', 'most', 
-            'move', 'much', 'must', 'name', 'need', 'number', 'other', 'over', 'part', 'place', 'right', 'same', 
-            'seem', 'show', 'side', 'tell', 'turn', 'want', 'well', 'were'
-        }
-        
-        return [word for word in words if word not in stop_words]
-
-    def _calculate_similarity(self, text1: str, text2: str) -> float:
-        """Calculate similarity between two texts using keyword overlap."""
-        keywords1 = set(self._extract_keywords(text1))
-        keywords2 = set(self._extract_keywords(text2))
-        
-        if not keywords1 or not keywords2:
-            return 0.0
-        
-        # Calculate Jaccard similarity
-        intersection = len(keywords1.intersection(keywords2))
-        union = len(keywords1.union(keywords2))
-        
-        return intersection / union if union > 0 else 0.0
 
     def add_entry(
         self, text: str, source: str = "conversation", metadata: Optional[Dict] = None
     ) -> None:
         """
-        Add a new memory entry.
+        Add a new memory entry to both vector index and raw storage.
 
         Args:
             text: The text content to store
             source: Source of the memory (default: "conversation")
             metadata: Optional metadata dictionary
         """
-        try:
-            # Create and store the memory entry
-            entry = MemoryEntry(
-                text=text, timestamp=datetime.now(), source=source, metadata=metadata
-            )
-            self.memories.append(entry)
-            self.total_entries += 1
-        except Exception as e:
-            print(f"Error adding entry to memory: {e}")
+        # Create and store the raw memory entry
+        entry = MemoryEntry(
+            text=text, timestamp=datetime.now(), source=source, metadata=metadata
+        )
+        self.memories.append(entry)
 
-    def retrieve_similar(
-        self, query: str, top_k: int = 3, threshold: float = 0.1
-    ) -> List[Dict]:
+        # Generate and add embedding to FAISS index
+        embedding = self.model.encode([text])[0]  # Get the first (and only) embedding
+        embedding_normalized = embedding.reshape(1, -1).astype(np.float32)
+        self.index.add(embedding_normalized)
+
+        self.total_entries += 1
+
+    def retrieve_similar(self, query: str, top_k: int = 3) -> List[Dict]:
         """
-        Retrieve similar memories using text similarity.
+        Retrieve the top-k most similar memories to the query.
 
         Args:
-            query: The query text to find similar memories for
+            query: The text to find similar memories for
             top_k: Number of similar memories to retrieve
-            threshold: Similarity threshold (0-1)
 
         Returns:
-            List of similar memory entries with similarity scores
+            List of memory entries with similarity scores
         """
         if self.total_entries == 0:
             return []
 
-        try:
-            # Calculate similarity scores for all memories
-            similarities = []
-            for memory in self.memories:
-                similarity = self._calculate_similarity(query, memory.text)
-                if similarity >= threshold:
-                    similarities.append({
-                        **memory.to_dict(),
-                        "similarity": round(similarity, 3)
-                    })
+        # Adjust top_k if we have fewer entries
+        top_k = min(top_k, self.total_entries)
 
-            # Sort by similarity and return top_k
-            similarities.sort(key=lambda x: x["similarity"], reverse=True)
-            return similarities[:top_k]
+        # Generate query embedding
+        query_embedding = self.model.encode([query])[0]
+        query_embedding = query_embedding.reshape(1, -1).astype(np.float32)
 
-        except Exception as e:
-            print(f"Error retrieving similar memories: {e}")
-            return []
+        # Search the FAISS index
+        distances, indices = self.index.search(query_embedding, top_k)
+
+        # Format results
+        results = []
+        for idx, distance in zip(indices[0], distances[0]):
+            memory = self.memories[idx]
+            similarity_score = 1.0 / (
+                1.0 + distance
+            )  # Convert distance to similarity score
+
+            results.append(
+                {**memory.to_dict(), "similarity": round(similarity_score, 3)}
+            )
+
+        return results
 
     def reset(self) -> None:
-        """Reset the memory system."""
+        """Clear all memories and reset the FAISS index."""
+        self.index = faiss.IndexFlatL2(self.embedding_dim)
         self.memories.clear()
         self.total_entries = 0
 
     def get_stats(self) -> Dict:
-        """
-        Get memory statistics.
-
-        Returns:
-            Dictionary containing memory statistics
-        """
-        latest_timestamp = None
-        if self.memories:
-            latest_timestamp = max(m.timestamp for m in self.memories)
-
-        # Calculate approximate size
-        total_text_size = sum(len(memory.text) for memory in self.memories)
-
+        """Get current memory statistics."""
         return {
             "total_entries": self.total_entries,
-            "index_size_bytes": total_text_size,  # Approximate size in bytes
-            "embedding_dim": 0,  # No embeddings used
-            "latest_timestamp": latest_timestamp,
+            "index_size_bytes": self.index.ntotal
+            * self.embedding_dim
+            * 4,  # 4 bytes per float32
+            "embedding_dim": self.embedding_dim,
+            "latest_timestamp": self.memories[-1].timestamp if self.memories else None,
         }
 
     def get_all_entries(self) -> List[Dict]:

@@ -4,6 +4,7 @@ Main application entry point with improved Gradio interface using GroqCloud API.
 """
 
 import os
+import threading
 from datetime import datetime
 from typing import List, Tuple
 
@@ -14,6 +15,13 @@ from agent import ThreadAgent
 
 # Load environment variables
 load_dotenv()
+
+# Background preload so the model loads before user input
+def preload_model():
+    from memory import MemoryManager
+    _ = MemoryManager()  # force model load
+
+threading.Thread(target=preload_model).start()
 
 # Initialize the agent
 agent = ThreadAgent()

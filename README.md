@@ -1,10 +1,16 @@
-# Thread - The Agent that Connects the Dots
+# 🧠 Thread - The Agent that Connects the Dots
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GroqCloud](https://img.shields.io/badge/Powered%20by-GroqCloud-purple.svg)](https://console.groq.com/)
+[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/Agents-MCP-Hackathon/thread-agent)
+[![agent-demo-track](https://img.shields.io/badge/track-agent--demo-orange)](https://huggingface.co/spaces/Agents-MCP-Hackathon/thread-agent)
 
 **Thread** is a memory-aware conversational AI agent that connects information across conversations. It features sophisticated semantic memory management, intelligent topic detection, and context-aware response generation powered by GroqCloud's Llama3-70B model.
+
+## 🎥 Demo Video
+
+[Coming Soon] Watch Thread in action, demonstrating its memory capabilities and topic detection.
 
 ## ✨ Features
 
@@ -24,144 +30,85 @@
 - **Domain-Specific Guidance**: Specialized advice for different topic areas
 - **Progress Tracking**: Helps users advance their thinking
 
-### 🖥️ **Modern UI**
-- **Gradio Interface**: Clean, responsive web interface
-- **Live Updates**: Real-time memory and topic displays
-- **Professional Design**: Modern gradients and intuitive layout
-- **API Management**: Easy GroqCloud API key configuration
+## 🚀 Getting Started
 
-## 🚀 Quick Start
+### 1. **Get Your GroqCloud API Key**
+- Sign up at [console.groq.com](https://console.groq.com/)
+- Create a new API key
+- Copy your API key
 
-### Prerequisites
-- Python 3.8 or higher
-- GroqCloud API key ([Get yours here](https://console.groq.com/))
+### 2. **Configure Thread**
+- Open the "🔐 Configure API" section
+- Paste your Groq API key
+- Click "💾 Save Key"
+- Wait for the "✅ Success" message
 
-### Installation
+### 3. **Start Conversing**
+- Type your message in the chat input
+- Watch the memory panel for relevant past context
+- Observe topic detection and next step suggestions
+- Use the memory panel to track conversation history
 
-1. **Clone the repository**
-```bash
-git clone https://github.com/onchainlabs1/hfhackathon.git
-cd hfhackathon
+## 🧪 Example Conversations
+
+Try these topics to see Thread's capabilities:
+
+**Technical Discussion:**
+```
+"We're having issues with our Python code's performance"
+"What debugging steps should we take?"
 ```
 
-2. **Create a virtual environment**
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+**Business Strategy:**
+```
+"How can we improve our market position?"
+"What metrics should we track for growth?"
 ```
 
-3. **Install dependencies**
-```bash
-pip install -r requirements.txt
+**Data Analysis:**
+```
+"I need to create a dashboard for our KPIs"
+"How should we analyze this dataset?"
 ```
 
-4. **Set up environment variables**
-Create a `.env` file in the project root:
-```bash
-GROQ_API_KEY=your_groq_api_key_here
-```
+## 🔧 Memory Management
 
-5. **Run the application**
-```bash
-python app.py
-```
+Use the memory panel controls:
+- **📊 Stats**: View detailed memory statistics
+- **🗑️ Reset**: Clear all memories to start fresh
+- **Similar Memories**: See real-time relevant context
 
-6. **Open your browser**
-Navigate to `http://localhost:7862` to start using Thread!
+## 🛠️ Space Configuration
 
-## 🏗️ Architecture
-
-### Core Components
-
-- **`agent.py`**: Main conversational agent with topic detection and memory integration
-- **`memory.py`**: FAISS-based vector memory system with semantic search
-- **`app.py`**: Gradio web interface with real-time updates
-- **`utils.py`**: Utility functions for text processing and formatting
-
-### Technology Stack
-
-- **AI Model**: GroqCloud Llama3-70B-8192
-- **Vector Search**: FAISS with SentenceTransformers
-- **Embeddings**: all-MiniLM-L6-v2 (384-dimensional)
-- **Web Interface**: Gradio 4.44.0
-- **Environment**: Python 3.8+ with asyncio support
-
-## 📊 Usage Examples
-
-### Topic Detection
-Thread automatically detects and tracks conversation topics:
-- **Technical**: "We have a bug in our Python code"
-- **Business**: "How can we improve our sales strategy?"
-- **Data Analysis**: "I need to create a dashboard for our metrics"
-
-### Memory Integration
-Ask follow-up questions and Thread will connect relevant past information:
-- Previous discussions about similar topics
-- Related context from earlier conversations
-- Semantic connections between ideas
-
-### Smart Suggestions
-Get actionable next steps based on your conversation:
-- Domain-specific recommendations
-- Context-aware guidance
-- Progress-oriented suggestions
-
-## 🔧 Configuration
+The Hugging Face Space is configured with:
+- Python 3.11
+- Gradio 4.44.0
+- 16GB RAM
+- No GPU required
 
 ### Environment Variables
-- `GROQ_API_KEY`: Your GroqCloud API key (required)
 
-### Customization
-- Modify topic keywords in `agent.py` for custom domains
-- Adjust memory similarity thresholds in `memory.py`
-- Customize UI styling in `app.py`
+Required:
+- `GROQ_API_KEY`: Your GroqCloud API key
 
-## 🧪 Testing
+Automatically set:
+- `GRADIO_SERVER_NAME`: 0.0.0.0
+- `GRADIO_SERVER_PORT`: 7860
+- `PYTHONUNBUFFERED`: 1
 
-The project includes comprehensive unit tests for core functionality.
+### Deployment Notes
 
-### Running Tests
-
-1. **Install test dependencies**
-```bash
-pip install -r tests/requirements-test.txt
-```
-
-2. **Run all tests**
-```bash
-# Using pytest
-pytest tests/
-
-# Or run individual test files
-python tests/test_memory.py
-python tests/test_agent.py
-```
-
-3. **Test coverage includes**
-- Memory system (add_entry, retrieve_similar, reset)
-- Agent initialization and core methods
-- Error handling and edge cases
-
-## 📸 Screenshots
-
-### Main Interface
-*A screenshot showing the main chat interface with memory panel*
-
-### Topic Detection
-*A screenshot showing real-time topic detection and suggestions*
-
-### Memory Visualization
-*A screenshot showing the memory panel with similar memories*
+1. The app runs on port 7860
+2. Memory system uses FAISS for vector search
+3. No persistent storage - memory resets on Space restart
+4. API key must be set in Space settings
 
 ## 🤝 Contributing
 
-We welcome contributions! Please feel free to submit issues, feature requests, or pull requests.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+This project is part of the Hugging Face Agents Hackathon. Feel free to:
+- Submit issues for bugs or feature requests
+- Fork and create pull requests
+- Share your experience and suggestions
 
 ## 📄 License
 
@@ -174,12 +121,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [SentenceTransformers](https://www.sbert.net/) for semantic embeddings
 - [Gradio](https://gradio.app/) for the web interface framework
 
-## 📞 Support
-
-- Create an issue for bug reports or feature requests
-- Join our community discussions
-- Check out the documentation for detailed usage guides
-
 ---
 
-**Thread** - Connecting the dots in conversational AI 🧠✨ 
+**Tags**: `agent-demo-track`, `conversational-ai`, `semantic-memory`, `groq`, `faiss`, `gradio` 

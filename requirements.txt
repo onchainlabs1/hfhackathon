@@ -1,7 +1,10 @@
 # Core dependencies
-gradio==3.50.2
-groq==0.4.1
-python-dotenv==1.0.1
+gradio
+groq
+faiss-cpu
+sentence-transformers
+python-dotenv
+torch
 
 # Web server
 aiohttp==3.9.3
