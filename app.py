@@ -294,6 +294,7 @@ with gr.Blocks(theme=theme) as app:
                 value=[],
                 label="💬 Conversation",
                 height=450,
+                show_copy_button=True,
                 type="messages"
             )
             with gr.Row():
@@ -366,7 +367,7 @@ if __name__ == "__main__":
             show_api=False,
             enable_queue=False,
             max_threads=1,
-            ssr=False  # Disable SSR completely
+            ssr_mode=False  # Disable SSR mode to prevent timeout
         )
         print("✅ Application started successfully!")
     except Exception as e:
