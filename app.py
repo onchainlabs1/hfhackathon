@@ -1,6 +1,6 @@
 """
 Thread - The agent that connects the dots.
-Main application entry point with improved Gradio interface using GroqCloud API.
+Simplified version for Hugging Face Spaces compatibility.
 """
 
 import os
@@ -28,15 +28,7 @@ agent = ThreadAgent()
 
 
 def save_groq_key(api_key: str) -> str:
-    """
-    Save the Groq API key to environment variables.
-
-    Args:
-        api_key: The Groq API key to save
-
-    Returns:
-        Status message indicating success or failure
-    """
+    """Save the Groq API key to environment variables."""
     if not api_key.strip():
         return "❌ **Error** - API key cannot be empty"
     try:
@@ -47,12 +39,7 @@ def save_groq_key(api_key: str) -> str:
 
 
 def check_api_key() -> str:
-    """
-    Check if Groq API key is configured.
-
-    Returns:
-        Status message indicating API key configuration status
-    """
+    """Check if Groq API key is configured."""
     api_key = os.getenv("GROQ_API_KEY")
     if api_key and api_key.strip():
         return "✅ **Connected** - Groq API key is configured"
@@ -61,52 +48,24 @@ def check_api_key() -> str:
 
 
 def save_groq_key_and_clear(api_key: str) -> Tuple[str, str]:
-    """
-    Save the API key and clear the input field.
-
-    Args:
-        api_key: The API key to save
-
-    Returns:
-        Tuple of (empty_string, status_message)
-    """
+    """Save the API key and clear the input field."""
     status = save_groq_key(api_key)
-
-    # Reload the Groq client to apply the new API key
     if "Success" in status:
         success = agent.reload_groq_client()
         if success:
             status += " - Client reloaded successfully"
         else:
             status += " - Warning: Client reload failed"
-
     return "", status
 
 
-async def process_message(
-    message: str, history: List
-) -> Tuple[str, List, str, str, str]:
-    """
-    Process a user message and return updated interface elements.
-
-    Args:
-        message: The user's input message
-        history: Current chat history
-
-    Returns:
-        Tuple of (empty_input, updated_history, memory_display, topic, next_step)
-    """
+async def process_message(message: str, history: List) -> Tuple[str, List, str]:
+    """Process a user message and return updated interface elements."""
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key or not api_key.strip():
         history.append({"role": "user", "content": message})
         history.append({"role": "assistant", "content": "⚠️ Please configure your Groq API key first!"})
-        return (
-            "",
-            history,
-            get_initial_memory_panel(),
-            format_topic_display(agent.current_topic),
-            format_next_step_display(agent.suggested_next_step),
-        )
+        return "", history, get_initial_memory_panel()
 
     response, base_memory_content = await agent.process_message(message)
     similar_memories = agent.memory.retrieve_similar(message, top_k=3)
@@ -115,43 +74,22 @@ async def process_message(
     history.append({"role": "user", "content": message})
     history.append({"role": "assistant", "content": response})
 
-    return (
-        "",
-        history,
-        memory_display,
-        format_topic_display(agent.current_topic),
-        format_next_step_display(agent.suggested_next_step),
-    )
+    return "", history, memory_display
 
 
 def get_initial_memory_panel() -> str:
-    """
-    Get the initial memory panel content.
-
-    Returns:
-        Formatted memory panel content
-    """
+    """Get the initial memory panel content."""
     return format_memory_panel(agent._get_memory_panel(), [])
 
 
 def clear_all_memory() -> str:
-    """
-    Clear all memory and return updated panel content.
-
-    Returns:
-        Updated memory panel content after clearing
-    """
+    """Clear all memory and return updated panel content."""
     base_content = agent.clear_memory()
     return format_memory_panel(base_content, [])
 
 
 def show_memory_stats() -> str:
-    """
-    Show detailed memory statistics.
-
-    Returns:
-        Formatted memory statistics
-    """
+    """Show detailed memory statistics."""
     stats = agent.get_memory_stats()
     size_kb = stats["index_size_bytes"] / 1024
 
@@ -159,15 +97,11 @@ def show_memory_stats() -> str:
     if stats.get("latest_timestamp"):
         latest_time = stats["latest_timestamp"].strftime("%Y-%m-%d %H:%M:%S")
 
-    return f"""### 📊 Detailed Memory Statistics
-
-**Storage Info:**
+    return f"""### 📊 Memory Statistics
 - Total Entries: {stats['total_entries']}
 - Vector Index Size: {size_kb:.1f} KB
 - Embedding Dimension: {stats['embedding_dim']}
-
-**Latest Activity:**
-- Last Update: {latest_time}
+- Latest Activity: {latest_time}
 
 ### 🔍 Similar Memories
 *Start a conversation to see similar memories in action.*
@@ -175,77 +109,25 @@ def show_memory_stats() -> str:
 
 
 def format_memory_panel(base_content: str, similar_memories: List) -> str:
-    """
-    Format the memory panel with base content and similar memories.
-
-    Args:
-        base_content: Base memory statistics content
-        similar_memories: List of similar memory entries
-
-    Returns:
-        Formatted memory panel content
-    """
+    """Format the memory panel with base content and similar memories."""
     memory_display = base_content + "\n\n### 🔍 Similar Memories\n"
 
     if similar_memories:
         for i, mem in enumerate(similar_memories, 1):
             text = mem["text"][:80] + ("..." if len(mem["text"]) > 80 else "")
             try:
-                timestamp = datetime.fromisoformat(mem["timestamp"]).strftime(
-                    "%m/%d %H:%M"
-                )
+                timestamp = datetime.fromisoformat(mem["timestamp"]).strftime("%m/%d %H:%M")
             except (ValueError, KeyError):
                 timestamp = "Unknown"
-            memory_display += (
-                f"**{i}.** {text}\n"
-                f"📊 Relevance: {mem['similarity']:.3f} | 📅 {timestamp}\n\n"
-            )
+            memory_display += f"**{i}.** {text}\n📊 Relevance: {mem['similarity']:.3f} | 📅 {timestamp}\n\n"
     else:
         memory_display += "*No relevant memories found.*\n"
 
     return memory_display
 
 
-def format_topic_display(topic: str) -> str:
-    """
-    Format the current topic for display with styled background.
-
-    Args:
-        topic: The current topic string
-
-    Returns:
-        HTML formatted topic display
-    """
-    return f"""
-<div style="padding: 10px; background: linear-gradient(90deg, #4F46E5 0%, #7C3AED 100%); border-radius: 8px; margin-bottom: 10px;">
-    <span style="color: white; font-weight: bold;">🎯 Current Topic: {topic}</span>
-</div>
-"""
-
-
-def format_next_step_display(next_step: str) -> str:
-    """
-    Format the suggested next step for display with styled background.
-
-    Args:
-        next_step: The suggested next step string
-
-    Returns:
-        HTML formatted next step display
-    """
-    return f"""
-<div style="padding: 10px; background: linear-gradient(90deg, #059669 0%, #0D9488 100%); border-radius: 8px; margin-bottom: 10px;">
-    <span style="color: white; font-weight: bold;">💡 Suggested Next Step:</span><br/>
-    <span style="color: white;">{next_step}</span>
-</div>
-"""
-
-
-# Configure Gradio theme
-theme = gr.themes.Default()
-
-# Create the Gradio interface
-with gr.Blocks(theme=theme) as app:
+# Create the simplified Gradio interface
+with gr.Blocks(title="Thread - Memory Agent") as app:
     gr.Markdown("""
     # 🧠 Thread - The Agent that Connects the Dots
     **Thread** is a memory-aware conversational agent powered by **GroqCloud**.
@@ -266,35 +148,16 @@ with gr.Blocks(theme=theme) as app:
                 save_key_btn = gr.Button("💾 Save Key", variant="primary")
                 refresh_btn = gr.Button("🔄 Refresh", variant="secondary")
         
-        api_status = gr.Markdown(
-            value=check_api_key(),
-            elem_classes=[
-                "status-positive" if os.getenv("GROQ_API_KEY") else "status-negative"
-            ]
-        )
+        api_status = gr.Markdown(value=check_api_key())
 
     # Main Interface
     with gr.Row():
         with gr.Column(scale=7):
-            # Agent Intelligence Display
-            with gr.Row():
-                with gr.Column(scale=1):
-                    current_topic_display = gr.Markdown(
-                        value=format_topic_display(agent.current_topic),
-                        elem_classes=["topic-display"]
-                    )
-                with gr.Column(scale=1):
-                    next_step_display = gr.Markdown(
-                        value=format_next_step_display(agent.suggested_next_step),
-                        elem_classes=["next-step-display"]
-                    )
-            
-            # Chat Interface
+            # Simple Chat Interface
             chatbot = gr.Chatbot(
-                value=[],
+                [],
                 label="💬 Conversation",
                 height=450,
-                show_copy_button=True,
                 type="messages"
             )
             with gr.Row():
@@ -310,19 +173,11 @@ with gr.Blocks(theme=theme) as app:
         with gr.Column(scale=3):
             memory_panel = gr.Markdown(
                 label="🧠 Memory Panel",
-                value=get_initial_memory_panel(),
-                elem_classes=["memory-panel"]
+                value=get_initial_memory_panel()
             )
             with gr.Row():
                 stats_btn = gr.Button("📊 Stats", variant="secondary")
                 clear_btn = gr.Button("🗑️ Reset", variant="secondary")
-
-    gr.Markdown("""
-    ---
-    💡 **Tips**:
-    - Save your Groq API key to enable AI responses
-    - The memory panel will display relevant memories after each input
-    """)
 
     # Event handlers
     save_key_btn.click(
@@ -335,41 +190,25 @@ with gr.Blocks(theme=theme) as app:
     send_btn.click(
         process_message, 
         inputs=[msg_input, chatbot], 
-        outputs=[
-            msg_input, chatbot, memory_panel, 
-            current_topic_display, next_step_display
-        ]
+        outputs=[msg_input, chatbot, memory_panel]
     )
     msg_input.submit(
         process_message, 
         inputs=[msg_input, chatbot], 
-        outputs=[
-            msg_input, chatbot, memory_panel, 
-            current_topic_display, next_step_display
-        ]
+        outputs=[msg_input, chatbot, memory_panel]
     )
     
     stats_btn.click(show_memory_stats, outputs=[memory_panel])
     clear_btn.click(clear_all_memory, outputs=[memory_panel])
 
 
-# Launch the app
+# Launch the app with minimal configuration
 if __name__ == "__main__":
     print("🚀 Starting Thread application with GroqCloud integration...")
-    try:
-        app.launch(
-            server_name="0.0.0.0",
-            server_port=int(os.getenv("GRADIO_SERVER_PORT", "7860")),
-            share=not bool(os.getenv("SPACE_ID")),
-            debug=False,
-            show_error=True,
-            quiet=True,
-            show_api=False,
-            enable_queue=False,
-            max_threads=1,
-            ssr_mode=False  # Disable SSR mode to prevent timeout
-        )
-        print("✅ Application started successfully!")
-    except Exception as e:
-        print(f"❌ Error starting application: {str(e)}")
-        print("💡 Tip: Try changing the port if it is already in use.")
+    app.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        share=False,
+        debug=False,
+        show_error=True
+    )
