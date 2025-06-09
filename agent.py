@@ -29,9 +29,6 @@ class ThreadAgent:
         self.creative_intent = {}
         self.conversation_context = []
         
-        # Initialize Groq client if API key is available
-        self._initialize_groq_client()
-        
         print("🤖 ThreadAgent initialized")
     
     def _initialize_groq_client(self) -> bool:
@@ -75,7 +72,11 @@ class ThreadAgent:
         # 3. Update creative intent tracking
         self._update_creative_intent(user_message, "user")
         
-        # 4. Generate response using LLM reasoning
+        # 4. Initialize Groq client if needed and generate response
+        if not self.groq_client:
+            self._initialize_groq_client()
+        
+        # Generate response using LLM reasoning
         if not self.groq_client:
             response = self._generate_fallback_response(user_message, similar_memories)
         else:

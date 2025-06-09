@@ -102,7 +102,7 @@ def refresh_memory_panel() -> str:
 
 def save_api_key(api_key: str) -> Tuple[str, bool]:
     """
-    Save Groq API key to environment and reload client.
+    Save Groq API key to environment (memory only, no file write).
     
     Args:
         api_key: The Groq API key
@@ -116,13 +116,8 @@ def save_api_key(api_key: str) -> Tuple[str, bool]:
     # Set environment variable (memory only)
     os.environ["GROQ_API_KEY"] = api_key.strip()
     
-    # Reload agent's Groq client
-    success = agent.reload_groq_client()
-    
-    if success:
-        return "✅ API key saved and Groq client initialized successfully!", False
-    else:
-        return "❌ Failed to initialize Groq client. Please check your API key.", True
+    # Note: Groq client will be initialized when processing messages (not here)
+    return "✅ API key saved successfully! Client will initialize on first message.", False
 
 
 def get_api_status() -> str:
@@ -133,185 +128,7 @@ def get_api_status() -> str:
         return "🔴 **Status:** Groq API not connected. Please configure your API key below."
 
 
-# Create the Gradio interface
-def create_interface():
-    """Create and configure the Gradio interface."""
-    
-    # Custom CSS for better appearance
-    custom_css = """
-    .memory-panel {
-        height: 400px;
-        overflow-y: auto;
-        padding: 15px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #dee2e6;
-    }
-    
-    .stats-panel {
-        height: 300px;
-        overflow-y: auto;
-        padding: 15px;
-        background-color: #f1f3f4;
-        border-radius: 8px;
-        border: 1px solid #dadce0;
-    }
-    
-    .api-status {
-        padding: 10px;
-        border-radius: 6px;
-        margin-bottom: 10px;
-    }
-    
-    .main-container {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    
-    .chatbot-container {
-        height: 500px;
-    }
-    """
-    
-    with gr.Blocks(
-        title="Thread - Creative Memory Agent",
-        css=custom_css,
-        theme=gr.themes.Soft()
-    ) as app:
-        
-        # Header
-        gr.Markdown("""
-        # 🧠 **Thread – The Creative Memory Agent**
-        *Agentic app with semantic memory • Model Context Protocol aligned • Powered by GroqCloud + Llama3-70B*
-        """)
-        
-        with gr.Row():
-            # Left Column - Chat Interface
-            with gr.Column(scale=2):
-                # Main Chat Interface
-                chatbot = gr.Chatbot(
-                    label="💬 Conversation",
-                    type="messages",
-                    height=500,
-                    elem_classes=["chatbot-container"],
-                    show_copy_button=True,
-                    show_share_button=False
-                )
-                
-                # Input Row
-                with gr.Row():
-                    msg_input = gr.Textbox(
-                        label="Your Message",
-                        placeholder="Start a creative conversation...",
-                        lines=2,
-                        scale=4,
-                        show_label=False
-                    )
-                    send_btn = gr.Button("Send 📤", variant="primary", scale=1)
-                
-                # Action Buttons Row
-                with gr.Row():
-                    stats_btn = gr.Button("📊 Stats", variant="secondary")
-                    reset_btn = gr.Button("🗑️ Reset", variant="secondary")
-                    refresh_btn = gr.Button("🔄 Refresh", variant="secondary")
-            
-            # Right Column - Memory & Configuration
-            with gr.Column(scale=1):
-                # Memory Panel
-                memory_panel = gr.Markdown(
-                    value=agent._get_memory_panel(),
-                    label="📝 Project Memory",
-                    elem_classes=["memory-panel"]
-                )
-                
-                # API Configuration Accordion
-                with gr.Accordion("🔐 Groq API Configuration", open=False) as api_accordion:
-                    api_status = gr.Markdown(value=get_api_status(), elem_classes=["api-status"])
-                    
-                    gr.Markdown("""
-                    **Configure your Groq API key for full creative reasoning:**
-                    1. Get your free API key from [console.groq.com](https://console.groq.com)
-                    2. Enter it below and click Save
-                    3. The key is stored in memory only (not saved to disk)
-                    """)
-                    
-                    with gr.Row():
-                        api_key_input = gr.Textbox(
-                            label="Groq API Key",
-                            type="password",
-                            placeholder="gsk_...",
-                            scale=3
-                        )
-                        save_key_btn = gr.Button("💾 Save", variant="primary", scale=1)
-                
-                # Stats Panel (initially hidden)
-                stats_panel = gr.Markdown(
-                    visible=False,
-                    elem_classes=["stats-panel"]
-                )
-        
-        # Event Handlers
-        
-        # Chat message processing
-        async def handle_message(message, history):
-            return await process_chat_message(message, history)
-        
-        # Send button and Enter key
-        send_btn.click(
-            fn=handle_message,
-            inputs=[msg_input, chatbot],
-            outputs=[chatbot, msg_input, memory_panel],
-            api_name="chat"
-        )
-        
-        msg_input.submit(
-            fn=handle_message,
-            inputs=[msg_input, chatbot],
-            outputs=[chatbot, msg_input, memory_panel]
-        )
-        
-        # Stats button - toggle visibility
-        def toggle_stats():
-            current_visible = stats_panel.visible
-            if not current_visible:
-                stats_content = get_memory_stats()
-                return gr.Markdown(value=stats_content, visible=True)
-            else:
-                return gr.Markdown(visible=False)
-        
-        stats_btn.click(
-            fn=toggle_stats,
-            outputs=[stats_panel]
-        )
-        
-        # Reset button
-        reset_btn.click(
-            fn=clear_memory,
-            outputs=[chatbot, memory_panel]
-        )
-        
-        # Refresh button
-        refresh_btn.click(
-            fn=refresh_memory_panel,
-            outputs=[memory_panel]
-        )
-        
-        # API key save
-        save_key_btn.click(
-            fn=save_api_key,
-            inputs=[api_key_input],
-            outputs=[api_status, api_accordion]
-        )
-        
-        # Footer
-        gr.Markdown("""
-        ---
-        **🏆 Built for Hugging Face Agents Hackathon** | 
-        [GitHub](https://github.com/onchainlabs1/hfhackathon) | 
-        Powered by SentenceTransformers + FAISS + GroqCloud
-        """)
-    
-    return app
+# MCP-aligned placeholder endpoints (for future MCP server integration)
 
 
 # MCP-aligned placeholder endpoints (for future MCP server integration)
@@ -337,15 +154,170 @@ async def mcp_memory_search_endpoint(query: str, top_k: int = 3):
     return {"results": results, "query": query, "count": len(results)}
 
 
+# Create the Gradio interface directly
+custom_css = """
+.memory-panel {
+    height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.stats-panel {
+    height: 300px;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #f1f3f4;
+    border-radius: 8px;
+    border: 1px solid #dadce0;
+}
+
+.api-status {
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+"""
+
+with gr.Blocks(
+    title="Thread - Creative Memory Agent",
+    css=custom_css,
+    theme=gr.themes.Soft()
+) as app:
+    
+    # Header
+    gr.Markdown("""
+    # 🧠 **Thread – The Creative Memory Agent**
+    *Agentic app with semantic memory • Model Context Protocol aligned • Powered by GroqCloud + Llama3-70B*
+    """)
+    
+    with gr.Row():
+        # Left Column - Chat Interface
+        with gr.Column(scale=2):
+            # Main Chat Interface
+            chatbot = gr.Chatbot(
+                label="💬 Conversation",
+                type="messages",
+                height=500,
+                show_copy_button=True,
+                show_share_button=False
+            )
+            
+            # Input Row
+            with gr.Row():
+                msg_input = gr.Textbox(
+                    label="Your Message",
+                    placeholder="Start a creative conversation...",
+                    lines=2,
+                    scale=4,
+                    show_label=False
+                )
+                send_btn = gr.Button("Send 📤", variant="primary", scale=1)
+            
+            # Action Buttons Row
+            with gr.Row():
+                stats_btn = gr.Button("📊 Stats", variant="secondary")
+                reset_btn = gr.Button("🗑️ Reset", variant="secondary")
+                refresh_btn = gr.Button("🔄 Refresh", variant="secondary")
+        
+        # Right Column - Memory & Configuration
+        with gr.Column(scale=1):
+            # Memory Panel
+            memory_panel = gr.Markdown(
+                value=agent._get_memory_panel(),
+                label="📝 Project Memory",
+                elem_classes=["memory-panel"]
+            )
+            
+            # API Configuration Accordion
+            with gr.Accordion("🔐 Groq API Configuration", open=False) as api_accordion:
+                api_status = gr.Markdown(value=get_api_status(), elem_classes=["api-status"])
+                
+                gr.Markdown("""
+                **Configure your Groq API key for full creative reasoning:**
+                1. Get your free API key from [console.groq.com](https://console.groq.com)
+                2. Enter it below and click Save
+                3. The key is stored in memory only (not saved to disk)
+                """)
+                
+                with gr.Row():
+                    api_key_input = gr.Textbox(
+                        label="Groq API Key",
+                        type="password",
+                        placeholder="gsk_...",
+                        scale=3
+                    )
+                    save_key_btn = gr.Button("💾 Save", variant="primary", scale=1)
+            
+            # Stats Panel (initially hidden)
+            stats_panel = gr.Markdown(
+                visible=False,
+                elem_classes=["stats-panel"]
+            )
+    
+    # Event Handlers
+    
+    # Chat message processing
+    async def handle_message(message, history):
+        return await process_chat_message(message, history)
+    
+    # Send button and Enter key
+    send_btn.click(
+        fn=handle_message,
+        inputs=[msg_input, chatbot],
+        outputs=[chatbot, msg_input, memory_panel],
+        api_name="chat"
+    )
+    
+    msg_input.submit(
+        fn=handle_message,
+        inputs=[msg_input, chatbot],
+        outputs=[chatbot, msg_input, memory_panel]
+    )
+    
+    # Stats button - toggle visibility
+    def toggle_stats():
+        current_visible = stats_panel.visible
+        if not current_visible:
+            stats_content = get_memory_stats()
+            return gr.Markdown(value=stats_content, visible=True)
+        else:
+            return gr.Markdown(visible=False)
+    
+    stats_btn.click(
+        fn=toggle_stats,
+        outputs=[stats_panel]
+    )
+    
+    # Reset button
+    reset_btn.click(
+        fn=clear_memory,
+        outputs=[chatbot, memory_panel]
+    )
+    
+    # Refresh button
+    refresh_btn.click(
+        fn=refresh_memory_panel,
+        outputs=[memory_panel]
+    )
+    
+    # API key save
+    save_key_btn.click(
+        fn=save_api_key,
+        inputs=[api_key_input],
+        outputs=[api_status, api_accordion]
+    )
+    
+    # Footer
+    gr.Markdown("""
+    ---
+    **🏆 Built for Hugging Face Agents Hackathon** | 
+    [GitHub](https://github.com/onchainlabs1/hfhackathon) | 
+    Powered by SentenceTransformers + FAISS + GroqCloud
+    """)
+
 # Launch configuration
 if __name__ == "__main__":
-    print("🚀 Starting Thread application with GroqCloud integration...")
-    
-    # Create and launch the interface
-    app = create_interface()
-    app.launch(
-        server_port=7860,
-        show_error=True,
-        share=False,
-        inbrowser=False
-    ) 
+    app.launch(server_port=7860, show_error=True) 
