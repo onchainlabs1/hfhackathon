@@ -1,6 +1,6 @@
 sdk: gradio
 python_version: 3.10
-app_file: index.py
+app_file: app.py
 preload:
   - sentence-transformers/all-MiniLM-L6-v2
-# Force rebuild: 2025-06-06-21:13-INDEX 
+# Final version with complete MCP-aligned architecture 

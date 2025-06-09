@@ -1,6 +1,38 @@
+# Core Gradio Framework
 gradio==4.44.0
-groq==0.4.1
-faiss-cpu==1.7.4
-sentence-transformers==2.2.2
-torch==2.0.1
-python-dotenv==1.0.1 
+
+# LLM Integration
+groq==0.11.0
+
+# Semantic Memory & Embeddings
+sentence-transformers==3.0.1
+faiss-cpu==1.8.0
+transformers==4.45.0
+
+# Data Processing & Utilities
+numpy==1.26.4
+pandas==2.2.2
+
+# Environment & Configuration
+python-dotenv==1.0.1
+
+# HTTP & API Support
+requests==2.32.3
+httpx==0.27.2
+
+# Data Validation & Serialization
+pydantic==2.9.2
+
+# Async Support
+asyncio-throttle==1.0.2
+
+# Additional ML & NLP Libraries
+torch==2.4.0
+scikit-learn==1.5.1
+
+# Utilities
+tqdm==4.66.5
+typing-extensions==4.12.2
+
+# Optional: For enhanced embeddings (if needed)
+# huggingface-hub==0.25.0 

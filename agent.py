@@ -1,16 +1,17 @@
 """
-Core agent logic for the Thread system.
-Handles conversation flow, response generation, and memory integration.
+🤖 THREAD AGENT MODULE
+Creative memory agent with LLM reasoning and planning separation
+Aligned with Model Context Protocol (MCP) specifications
 """
 
 import os
 from typing import Dict, List, Optional, Tuple
+from datetime import datetime
 
-from dotenv import load_dotenv
 from groq import Groq
+from dotenv import load_dotenv
 
-from memory import MemoryManager
-from utils import format_chat_message
+from memory import SemanticMemory
 
 # Load environment variables
 load_dotenv()
@@ -18,396 +19,369 @@ load_dotenv()
 
 class ThreadAgent:
     """
-    Main agent class that handles conversation and memory integration.
-
-    This class manages the conversational AI agent with features including:
-    - Topic detection and tracking
-    - Context-aware response generation
-    - Memory integration with semantic search
-    - Next step suggestions
+    Creative memory agent that combines semantic memory with LLM reasoning.
+    Tracks creative intent and provides proactive suggestions.
     """
-
-    def __init__(self) -> None:
-        """Initialize the Thread agent with memory and conversation tracking."""
-        self.memory = MemoryManager()
-        self.conversation_history: List[Dict[str, str]] = []
-        self.current_topic = "General Discussion"
-        self.suggested_next_step = "Start a conversation to explore topics"
-
-        # Initialize Groq client once for reuse
-        self.groq_client = self._initialize_groq_client()
-
-        self.base_system_prompt = """You are Thread, an intelligent agent that connects information
-        and maintains context through sophisticated memory management. You should:
-        1. Be concise but informative in your responses
-        2. Reference relevant past information when appropriate
-        3. Maintain a professional and helpful tone
-        4. Ask clarifying questions when needed
-        5. Offer actionable next steps when relevant"""
-
-        # Topic keywords for classification
-        self.topic_keywords = {
-            "pricing": [
-                "price",
-                "cost",
-                "budget",
-                "expensive",
-                "cheap",
-                "pricing",
-                "fee",
-            ],
-            "technical": [
-                "code",
-                "programming",
-                "bug",
-                "error",
-                "development",
-                "software",
-            ],
-            "business": [
-                "strategy",
-                "revenue",
-                "growth",
-                "market",
-                "customer",
-                "sales",
-            ],
-            "data_analysis": [
-                "data",
-                "analytics",
-                "metrics",
-                "dashboard",
-                "report",
-                "insights",
-            ],
-            "project_management": [
-                "project",
-                "deadline",
-                "timeline",
-                "milestone",
-                "task",
-                "planning",
-            ],
-            "customer_support": [
-                "support",
-                "help",
-                "issue",
-                "problem",
-                "ticket",
-                "complaint",
-            ],
-            "machine_learning": [
-                "ml",
-                "ai",
-                "model",
-                "training",
-                "prediction",
-                "algorithm",
-            ],
-        }
-
-    def _initialize_groq_client(self) -> Optional[Groq]:
-        """
-        Initialize Groq client once during initialization.
-
-        Returns:
-            Groq client instance or None if not configured
-        """
+    
+    def __init__(self):
+        self.memory = SemanticMemory()
+        self.groq_client = None
+        self.creative_intent = {}
+        self.conversation_context = []
+        
+        # Initialize Groq client if API key is available
+        self._initialize_groq_client()
+        
+        print("🤖 ThreadAgent initialized")
+    
+    def _initialize_groq_client(self) -> bool:
+        """Initialize Groq client with API key."""
         api_key = os.getenv("GROQ_API_KEY")
-        if not api_key or not api_key.strip():
-            return None
-        try:
-            return Groq(api_key=api_key)
-        except Exception:
-            return None
-
-    def reload_groq_client(self) -> bool:
-        """
-        Reload Groq client from current environment variables.
-
-        This method should be called after updating the GROQ_API_KEY
-        environment variable to apply the new API key.
-
-        Returns:
-            True if client was successfully reloaded, False otherwise
-        """
-        self.groq_client = self._initialize_groq_client()
-        return self.groq_client is not None
-
-    def _detect_topic(self, message: str) -> str:
-        """
-        Detect conversation topic based on keywords in the message.
-
-        Args:
-            message: The user message to analyze
-
-        Returns:
-            The detected topic or current topic if no match found
-        """
-        message_lower = message.lower()
-
-        # Count keyword matches for each topic
-        topic_scores = {}
-        for topic, keywords in self.topic_keywords.items():
-            score = sum(1 for keyword in keywords if keyword in message_lower)
-            if score > 0:
-                topic_scores[topic] = score
-
-        # Return the topic with highest score, or keep current if no clear match
-        if topic_scores:
-            best_topic = max(topic_scores.items(), key=lambda x: x[1])[0]
-            return best_topic.replace("_", " ").title()
-
-        return self.current_topic
-
-    def _generate_next_step_suggestion(self, message: str, topic: str) -> str:
-        """
-        Generate intelligent next step suggestions based on topic and context.
-
-        Args:
-            message: The user message
-            topic: The detected topic
-
-        Returns:
-            Suggested next step for the user
-        """
-        message_lower = message.lower()
-
-        # Topic-specific suggestions
-        if "pricing" in topic.lower():
-            if any(word in message_lower for word in ["compare", "options", "plans"]):
-                return "Consider reviewing pricing tiers and value propositions"
-            return "Analyze cost-benefit scenarios or competitor pricing"
-
-        elif "technical" in topic.lower():
-            if any(word in message_lower for word in ["bug", "error", "issue"]):
-                return "Document the issue and create a troubleshooting plan"
-            return "Review technical documentation or consider code optimization"
-
-        elif "business" in topic.lower():
-            if any(word in message_lower for word in ["strategy", "growth"]):
-                return "Define KPIs and create actionable business metrics"
-            return "Schedule stakeholder review or market analysis"
-
-        elif "data" in topic.lower():
-            if any(word in message_lower for word in ["report", "dashboard"]):
-                return "Set up automated reporting or data visualization"
-            return "Validate data sources and define analysis methodology"
-
-        elif "project" in topic.lower():
-            if any(word in message_lower for word in ["deadline", "timeline"]):
-                return "Create detailed project timeline with milestones"
-            return "Review project scope and resource allocation"
-
-        elif "support" in topic.lower():
-            return "Create knowledge base entry or escalation procedure"
-
-        elif "machine learning" in topic.lower():
-            if any(word in message_lower for word in ["model", "training"]):
-                return "Evaluate model performance and consider optimization"
-            return "Gather more training data or explore feature engineering"
-
-        # Default suggestions based on conversation patterns
-        if "?" in message:
-            return "Research the topic further or consult domain experts"
-        elif any(word in message_lower for word in ["help", "how", "what"]):
-            return "Break down the problem into smaller, actionable steps"
+        if api_key and api_key.strip():
+            try:
+                self.groq_client = Groq(api_key=api_key)
+                print("✅ Groq client initialized")
+                return True
+            except Exception as e:
+                print(f"❌ Failed to initialize Groq client: {e}")
+                return False
         else:
-            return "Continue exploring this topic or move to related areas"
-
-    def _build_enhanced_system_prompt(self, memory_context: str, topic: str) -> str:
+            print("⚠️ GROQ_API_KEY not found")
+            return False
+    
+    def reload_groq_client(self) -> bool:
+        """Reload Groq client (useful after API key update)."""
+        return self._initialize_groq_client()
+    
+    async def process_message(self, user_message: str) -> Tuple[str, str]:
         """
-        Build a rich, context-aware system prompt.
-
+        Process user message and generate response with memory integration.
+        
         Args:
-            memory_context: Relevant memories context
-            topic: Current conversation topic
-
-        Returns:
-            Enhanced system prompt with context
-        """
-        enhanced_prompt = f"""{self.base_system_prompt}
-
-CURRENT CONTEXT:
-- Topic: {topic}
-- Memory Context: {memory_context}
-
-INSTRUCTIONS:
-- Reference past information when it adds value to your response
-- Justify your suggestions with reasoning from previous conversations
-- Offer specific, actionable next steps when relevant
-- Connect current discussion to related topics from memory
-- If discussing {topic.lower()}, focus on domain-specific insights and best practices
-
-Remember: Your goal is to create meaningful connections between ideas and help users progress their thinking."""
-
-        return enhanced_prompt
-
-    async def process_message(self, message: str) -> Tuple[str, str]:
-        """
-        Process a user message and generate a response.
-
-        Args:
-            message: The user's input message
-
+            user_message: User's input message
+            
         Returns:
             Tuple of (response, memory_panel_content)
         """
-        # Update current topic based on user message
-        self.current_topic = self._detect_topic(message)
-
-        # Generate next step suggestion
-        self.suggested_next_step = self._generate_next_step_suggestion(
-            message, self.current_topic
-        )
-
-        # Retrieve relevant memories BEFORE adding current message to prevent self-matching
-        relevant_memories = self.memory.retrieve_similar(message, top_k=3)
-        memory_context = self._format_memory_context(relevant_memories)
-
-        # Add user message to conversation history
-        self.conversation_history.append(format_chat_message("user", message))
-
-        # Store message in memory AFTER retrieval
-        self.memory.add_entry(message, source="user")
-
+        if not user_message.strip():
+            return "Please enter a message.", self._get_memory_panel()
+        
+        # 1. Retrieve similar memories BEFORE storing current message
+        similar_memories = self.memory.retrieve_similar(user_message, top_k=3)
+        
+        # 2. Store user message in memory
+        self.memory.add_memory(user_message, "user")
+        
+        # 3. Update creative intent tracking
+        self._update_creative_intent(user_message, "user")
+        
+        # 4. Generate response using LLM reasoning
+        if not self.groq_client:
+            response = self._generate_fallback_response(user_message, similar_memories)
+        else:
+            response = await self._generate_response(user_message, similar_memories)
+        
+        # 5. Store assistant response in memory
+        self.memory.add_memory(response, "assistant")
+        
+        # 6. Update creative intent with response
+        self._update_creative_intent(response, "assistant")
+        
+        # 7. Get updated memory panel
+        memory_panel = self._get_memory_panel(similar_memories)
+        
+        return response, memory_panel
+    
+    async def _generate_response(
+        self, 
+        user_message: str, 
+        similar_memories: List[Dict]
+    ) -> str:
+        """
+        Generate response using Groq LLM with memory context.
+        
+        Args:
+            user_message: Current user message
+            similar_memories: Retrieved similar memories
+            
+        Returns:
+            Generated response
+        """
         try:
-            # Generate response using GroqCloud
-            response = await self._generate_response(message, memory_context)
-
-            # Add response to conversation history and memory
-            self.conversation_history.append(format_chat_message("assistant", response))
-            self.memory.add_entry(response, source="assistant")
-
-            # Get updated memory panel content
-            memory_panel = self._get_memory_panel()
-
-            return response, memory_panel
-
-        except Exception as e:
-            error_msg = f"I apologize, but I encountered an error: {str(e)}"
-            return error_msg, self._get_memory_panel()
-
-    async def _generate_response(self, message: str, memory_context: str) -> str:
-        """
-        Generate a response using GroqCloud with enhanced context.
-
-        Args:
-            message: The user message
-            memory_context: Relevant memory context
-
-        Returns:
-            Generated response from the AI model
-        """
-        groq_client = self.groq_client
-        if not groq_client:
-            return self._generate_placeholder_response(message)
-
-        # Build enhanced system prompt
-        enhanced_system_prompt = self._build_enhanced_system_prompt(
-            memory_context, self.current_topic
-        )
-
-        messages = [{"role": "system", "content": enhanced_system_prompt}]
-
-        # Add recent conversation history (last 5 messages)
-        messages.extend(self.conversation_history[-5:])
-
-        # Add current user message
-        messages.append({"role": "user", "content": message})
-
-        response = groq_client.chat.completions.create(
-            model="llama3-70b-8192", messages=messages, temperature=0.7, max_tokens=1000
-        )
-
-        return response.choices[0].message.content
-
-    def _generate_placeholder_response(self, message: str) -> str:
-        """
-        Generate a placeholder response when GroqCloud API is not configured.
-
-        Args:
-            message: The user message
-
-        Returns:
-            Placeholder response indicating API key needed
-        """
-        return (
-            f"I understand you said: {message}\n\n"
-            "This is a placeholder response since GROQ_API_KEY is not configured. "
-            "Please set GROQ_API_KEY in your environment to enable full functionality."
-        )
-
-    def _format_memory_context(self, memories: List[Dict]) -> str:
-        """
-        Format memories into a context string for the agent.
-
-        Args:
-            memories: List of relevant memory entries
-
-        Returns:
-            Formatted memory context string
-        """
-        if not memories:
-            return "No relevant memories found."
-
-        context_parts = ["Relevant memories:"]
-        for memory in memories:
-            similarity = memory.get("similarity", 0)
-            context_parts.append(
-                f"- [{memory['source']}] {memory['text']} "
-                f"(similarity: {similarity:.2f})"
+            # Build system prompt with memory context
+            system_prompt = self._build_system_prompt(similar_memories)
+            
+            # Get recent conversation context (last 5 turns)
+            recent_context = self.memory.get_recent_context(limit=5)
+            
+            # Build messages for Groq
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # Add recent context
+            for context in recent_context:
+                messages.append({
+                    "role": context["role"],
+                    "content": context["content"]
+                })
+            
+            # Add current message
+            messages.append({"role": "user", "content": user_message})
+            
+            # Generate response
+            response = self.groq_client.chat.completions.create(
+                model="llama3-70b-8192",
+                messages=messages,
+                temperature=0.7,
+                max_tokens=1000
             )
-        return "\n".join(context_parts)
-
-    def _get_memory_panel(self) -> str:
+            
+            assistant_response = response.choices[0].message.content
+            
+            # Add proactive suggestion
+            suggestion = self._generate_proactive_suggestion(user_message, assistant_response)
+            if suggestion:
+                assistant_response += f"\n\n💡 {suggestion}"
+            
+            return assistant_response
+            
+        except Exception as e:
+            print(f"❌ Error generating response: {e}")
+            return self._generate_fallback_response(user_message, similar_memories)
+    
+    def _build_system_prompt(self, similar_memories: List[Dict]) -> str:
         """
-        Get formatted memory panel content.
-
+        Build enhanced system prompt with memory context and creative intent.
+        
+        Args:
+            similar_memories: Retrieved similar memories
+            
         Returns:
-            Formatted memory statistics and information
+            Enhanced system prompt
+        """
+        base_prompt = """You are Thread, a creative memory agent that connects ideas across conversations. You have access to semantic memory that helps you maintain context and build upon previous discussions.
+
+Key traits:
+- Creative and insightful, helping users develop ideas
+- Reference relevant past conversations when helpful
+- Suggest creative next steps and connections
+- Maintain continuity across conversations
+- Be concise but thoughtful in responses"""
+
+        # Add memory context if available
+        if similar_memories:
+            memory_context = "\n\nRELEVANT MEMORY CONTEXT:\n"
+            for i, mem in enumerate(similar_memories, 1):
+                similarity = mem.get('similarity', 0)
+                role = mem.get('role', 'unknown')
+                text = mem.get('text_preview', mem.get('text', ''))
+                timestamp = mem.get('formatted_timestamp', 'unknown')
+                
+                memory_context += f"{i}. [{role}] {text} (relevance: {similarity:.3f}, {timestamp})\n"
+            
+            base_prompt += memory_context
+        
+        # Add creative intent context
+        if self.creative_intent:
+            intent_context = "\n\nCREATIVE INTENT TRACKING:\n"
+            for key, value in self.creative_intent.items():
+                if isinstance(value, (int, float)) and value > 0:
+                    intent_context += f"- {key}: {value}\n"
+            
+            if len(intent_context) > len("\n\nCREATIVE INTENT TRACKING:\n"):
+                base_prompt += intent_context
+        
+        base_prompt += "\n\nUse this context to provide relevant, creative responses that build upon previous conversations."
+        
+        return base_prompt
+    
+    def _generate_fallback_response(
+        self, 
+        user_message: str, 
+        similar_memories: List[Dict]
+    ) -> str:
+        """
+        Generate fallback response when Groq API is unavailable.
+        
+        Args:
+            user_message: User's message
+            similar_memories: Retrieved memories
+            
+        Returns:
+            Fallback response
+        """
+        response = f"I understand you're discussing: {user_message}\n\n"
+        response += "⚠️ Creative reasoning is limited (API key needed for full functionality).\n\n"
+        
+        if similar_memories:
+            response += "🧠 I found these related memories:\n"
+            for i, mem in enumerate(similar_memories, 1):
+                text = mem.get('text_preview', '')
+                similarity = mem.get('similarity', 0)
+                response += f"{i}. {text} (relevance: {similarity:.3f})\n"
+        
+        response += "\n💡 To enable full creative responses, please configure your Groq API key."
+        
+        return response
+    
+    def _update_creative_intent(self, message: str, role: str) -> None:
+        """
+        Update creative intent tracking based on message content.
+        
+        Args:
+            message: The message to analyze
+            role: "user" or "assistant"
+        """
+        message_lower = message.lower()
+        
+        # Creative writing indicators
+        writing_keywords = ['write', 'story', 'novel', 'script', 'poem', 'blog', 'article']
+        if any(keyword in message_lower for keyword in writing_keywords):
+            self.creative_intent['writing_projects'] = self.creative_intent.get('writing_projects', 0) + 1
+        
+        # Planning indicators
+        planning_keywords = ['plan', 'strategy', 'goal', 'roadmap', 'timeline', 'project']
+        if any(keyword in message_lower for keyword in planning_keywords):
+            self.creative_intent['planning_activities'] = self.creative_intent.get('planning_activities', 0) + 1
+        
+        # Learning indicators
+        learning_keywords = ['learn', 'understand', 'explain', 'how', 'what', 'why']
+        if any(keyword in message_lower for keyword in learning_keywords):
+            self.creative_intent['learning_queries'] = self.creative_intent.get('learning_queries', 0) + 1
+        
+        # Problem-solving indicators
+        problem_keywords = ['problem', 'issue', 'challenge', 'solve', 'fix', 'debug']
+        if any(keyword in message_lower for keyword in problem_keywords):
+            self.creative_intent['problem_solving'] = self.creative_intent.get('problem_solving', 0) + 1
+    
+    def _generate_proactive_suggestion(self, user_message: str, response: str) -> Optional[str]:
+        """
+        Generate proactive suggestions based on conversation context.
+        
+        Args:
+            user_message: User's message
+            response: Generated response
+            
+        Returns:
+            Proactive suggestion or None
+        """
+        message_lower = user_message.lower()
+        
+        # Writing project suggestions
+        if any(word in message_lower for word in ['story', 'novel', 'script']):
+            return "Would you like me to help you develop characters, plot outline, or setting details?"
+        
+        # Video/content suggestions
+        if any(word in message_lower for word in ['video', 'youtube', 'content']):
+            return "Should we brainstorm a content calendar or video script outline?"
+        
+        # Learning suggestions
+        if any(word in message_lower for word in ['learn', 'study', 'understand']):
+            return "Would you like me to create a learning roadmap or suggest practice exercises?"
+        
+        # Planning suggestions
+        if any(word in message_lower for word in ['plan', 'project', 'goal']):
+            return "Shall we break this down into actionable steps with timelines?"
+        
+        # Creative suggestions based on intent history
+        if self.creative_intent.get('writing_projects', 0) > 2:
+            return "I notice you're working on writing projects. Would you like to explore a new creative direction?"
+        
+        return None
+    
+    def _get_memory_panel(self, similar_memories: Optional[List[Dict]] = None) -> str:
+        """
+        Generate memory panel content for UI display.
+        
+        Args:
+            similar_memories: Optional pre-retrieved memories
+            
+        Returns:
+            Formatted memory panel content
         """
         stats = self.memory.get_stats()
-        size_mb = stats["index_size_bytes"] / (1024 * 1024)
-
-        latest_time = "None"
-        if stats.get("latest_timestamp"):
-            latest_time = stats["latest_timestamp"].strftime("%Y-%m-%d %H:%M:%S")
-
-        return (
-            f"### 📊 Memory Statistics\n"
-            f"- Total Entries: {stats['total_entries']}\n"
-            f"- Vector Index Size: {size_mb:.2f} MB\n"
-            f"- Embedding Dimension: {stats['embedding_dim']}\n"
-            f"- Latest Entry: {latest_time}"
-        )
-
+        
+        panel = f"""### 📝 Project Memory
+**Total Entries:** {stats['total_entries']}
+**Memory Size:** {stats['index_size_bytes'] / 1024:.1f} KB
+**Embedding Dim:** {stats['embedding_dim']}
+"""
+        
+        if stats['latest_timestamp']:
+            latest = stats['latest_timestamp'].strftime("%m/%d %H:%M")
+            panel += f"**Last Update:** {latest}\n"
+        
+        # Add creative intent summary
+        if self.creative_intent:
+            panel += "\n### 🎯 Creative Intent\n"
+            for intent, count in self.creative_intent.items():
+                if count > 0:
+                    panel += f"- {intent.replace('_', ' ').title()}: {count}\n"
+        
+        # Add similar memories section
+        panel += "\n### 🔍 Similar Memories\n"
+        
+        if similar_memories:
+            for i, mem in enumerate(similar_memories, 1):
+                text = mem.get('text_preview', '')
+                similarity = mem.get('similarity', 0)
+                timestamp = mem.get('formatted_timestamp', '')
+                role = mem.get('role', 'unknown')
+                
+                # Role emoji
+                role_emoji = "👤" if role == "user" else "🤖"
+                
+                panel += f"**{i}.** {role_emoji} {text}\n"
+                panel += f"   📊 Relevance: {similarity:.3f} | 📅 {timestamp}\n\n"
+        else:
+            panel += "*No relevant memories found. Start a conversation to build context.*\n"
+        
+        return panel
+    
+    def get_memory_stats(self) -> Dict:
+        """Get comprehensive memory statistics."""
+        base_stats = self.memory.get_stats()
+        base_stats.update({
+            "creative_intent": self.creative_intent,
+            "groq_connected": self.groq_client is not None,
+            "total_conversations": len([m for m in self.memory.memories if m.role == "user"])
+        })
+        return base_stats
+    
     def clear_memory(self) -> str:
-        """
-        Clear all memories and return updated panel content.
-
-        Returns:
-            Updated memory panel content after clearing
-        """
+        """Clear all memories and reset agent state."""
         self.memory.reset()
-        self.conversation_history.clear()
+        self.creative_intent.clear()
+        self.conversation_context.clear()
         return self._get_memory_panel()
 
-    def get_memory_stats(self) -> Dict:
-        """
-        Get memory statistics.
 
-        Returns:
-            Dictionary containing memory statistics
-        """
-        return self.memory.get_stats()
-
-    def is_api_configured(self) -> bool:
-        """
-        Check if Groq API key is configured.
-
-        Returns:
-            True if API key is configured and valid, False otherwise
-        """
-        groq_client = self.groq_client
-        return groq_client is not None
+# MCP-aligned reasoning endpoints (placeholder for future MCP integration)
+class MCPReasoningServer:
+    """Placeholder MCP server endpoints for reasoning operations."""
+    
+    def __init__(self, agent: ThreadAgent):
+        self.agent = agent
+    
+    async def reasoning_endpoint(self, request: Dict) -> Dict:
+        """MCP /reasoning endpoint"""
+        message = request.get("message", "")
+        context = request.get("context", [])
+        
+        # This would integrate with the agent's reasoning pipeline
+        return {
+            "reasoning": "Enhanced reasoning with memory context",
+            "confidence": 0.85,
+            "creative_intent": self.agent.creative_intent
+        }
+    
+    async def planning_endpoint(self, request: Dict) -> Dict:
+        """MCP /planning endpoint"""
+        goal = request.get("goal", "")
+        constraints = request.get("constraints", [])
+        
+        # This would integrate with the agent's planning capabilities
+        return {
+            "plan": "Step-by-step plan based on memory and context",
+            "timeline": "Suggested timeline",
+            "next_actions": ["Action 1", "Action 2"]
+        }

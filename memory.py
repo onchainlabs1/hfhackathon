@@ -1,142 +1,215 @@
 """
-Vector-based memory system for the Thread agent using FAISS and SentenceTransformers.
-Handles storage and retrieval of conversation memories through semantic similarity.
+🧠 SEMANTIC MEMORY MODULE
+Vector-based memory system using SentenceTransformers + FAISS
+Aligned with Model Context Protocol (MCP) specifications
 """
 
+import os
 from datetime import datetime
 from typing import Dict, List, Optional
 
-import faiss
 import numpy as np
+import faiss
 from sentence_transformers import SentenceTransformer
 
 
-def get_embedding_model():
-    """Get the embedding model with persistent cache for Hugging Face Spaces."""
-    return SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2", cache_folder="/data/models")
-
-
 class MemoryEntry:
-    """Data class for storing memory entries."""
-
+    """Data structure for memory entries with metadata."""
+    
     def __init__(
         self,
         text: str,
+        role: str,  # "user" or "assistant"
         timestamp: datetime,
-        source: str = "conversation",
-        metadata: Optional[Dict] = None,
+        metadata: Optional[Dict] = None
     ):
         self.text = text
+        self.role = role
         self.timestamp = timestamp
-        self.source = source
         self.metadata = metadata or {}
-
+    
     def to_dict(self) -> Dict:
-        """Convert entry to dictionary format."""
+        """Convert to dictionary format for retrieval."""
         return {
             "text": self.text,
+            "role": self.role,
             "timestamp": self.timestamp.isoformat(),
-            "source": self.source,
-            "metadata": self.metadata,
+            "metadata": self.metadata
         }
 
 
-class MemoryManager:
-    """Vector-based memory management system using FAISS."""
-
+class SemanticMemory:
+    """
+    Semantic memory system using SentenceTransformers + FAISS.
+    Stores and retrieves memories based on semantic similarity.
+    """
+    
     def __init__(self):
-        # Initialize the sentence transformer model with optimized caching
-        self.model = get_embedding_model()
-        self.embedding_dim = 384  # Dimension of all-MiniLM-L6-v2 embeddings
-
-        # Initialize FAISS index for vector similarity search
+        # Initialize SentenceTransformer model
+        print("🧠 Initializing semantic memory...")
+        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+        self.embedding_dim = 384  # all-MiniLM-L6-v2 dimension
+        
+        # Initialize FAISS index (L2 distance)
         self.index = faiss.IndexFlatL2(self.embedding_dim)
-
-        # Store raw memory entries for retrieval
+        
+        # Store memory entries with metadata
         self.memories: List[MemoryEntry] = []
-
-        # Track statistics
         self.total_entries = 0
-
-    def add_entry(
-        self, text: str, source: str = "conversation", metadata: Optional[Dict] = None
-    ) -> None:
+    
+    def add_memory(self, text: str, role: str, metadata: Optional[Dict] = None) -> None:
         """
-        Add a new memory entry to both vector index and raw storage.
-
+        Add a new memory entry with semantic embedding.
+        
         Args:
-            text: The text content to store
-            source: Source of the memory (default: "conversation")
-            metadata: Optional metadata dictionary
+            text: The message content
+            role: "user" or "assistant"
+            metadata: Optional additional metadata
         """
-        # Create and store the raw memory entry
+        if not text.strip():
+            return
+            
+        # Create memory entry
         entry = MemoryEntry(
-            text=text, timestamp=datetime.now(), source=source, metadata=metadata
+            text=text,
+            role=role,
+            timestamp=datetime.now(),
+            metadata=metadata
         )
-        self.memories.append(entry)
-
-        # Generate and add embedding to FAISS index
-        embedding = self.model.encode([text])[0]  # Get the first (and only) embedding
+        
+        # Generate embedding
+        embedding = self.model.encode([text])[0]
         embedding_normalized = embedding.reshape(1, -1).astype(np.float32)
+        
+        # Add to FAISS index
         self.index.add(embedding_normalized)
-
+        
+        # Store memory entry
+        self.memories.append(entry)
         self.total_entries += 1
-
-    def retrieve_similar(self, query: str, top_k: int = 3) -> List[Dict]:
+        
+        print(f"💾 Memory added: {role} - {text[:50]}...")
+    
+    def retrieve_similar(
+        self, 
+        message: str, 
+        top_k: int = 3, 
+        exclude_current: bool = True
+    ) -> List[Dict]:
         """
-        Retrieve the top-k most similar memories to the query.
-
+        Retrieve semantically similar memories.
+        
         Args:
-            query: The text to find similar memories for
-            top_k: Number of similar memories to retrieve
-
+            message: Query message
+            top_k: Number of similar memories to return
+            exclude_current: Whether to exclude the current message
+            
         Returns:
-            List of memory entries with similarity scores
+            List of similar memories with similarity scores
         """
         if self.total_entries == 0:
             return []
-
-        # Adjust top_k if we have fewer entries
-        top_k = min(top_k, self.total_entries)
-
+        
         # Generate query embedding
-        query_embedding = self.model.encode([query])[0]
+        query_embedding = self.model.encode([message])[0]
         query_embedding = query_embedding.reshape(1, -1).astype(np.float32)
-
-        # Search the FAISS index
-        distances, indices = self.index.search(query_embedding, top_k)
-
+        
+        # Search FAISS index
+        search_k = min(top_k + (1 if exclude_current else 0), self.total_entries)
+        distances, indices = self.index.search(query_embedding, search_k)
+        
         # Format results
         results = []
-        for idx, distance in zip(indices[0], distances[0]):
-            memory = self.memories[idx]
-            similarity_score = 1.0 / (
-                1.0 + distance
-            )  # Convert distance to similarity score
-
-            results.append(
-                {**memory.to_dict(), "similarity": round(similarity_score, 3)}
-            )
-
-        return results
-
+        for dist, idx in zip(distances[0], indices[0]):
+            if idx < len(self.memories):
+                memory = self.memories[idx]
+                
+                # Skip if excluding current message (exact match)
+                if exclude_current and memory.text.strip() == message.strip():
+                    continue
+                
+                # Calculate similarity (0-1 scale)
+                similarity = 1.0 / (1.0 + dist)
+                
+                # Format memory entry
+                memory_dict = memory.to_dict()
+                memory_dict["similarity"] = round(similarity, 3)
+                memory_dict["text_preview"] = self._truncate_text(memory.text, 80)
+                memory_dict["formatted_timestamp"] = memory.timestamp.strftime("%m/%d %H:%M")
+                
+                results.append(memory_dict)
+                
+                if len(results) >= top_k:
+                    break
+        
+        return sorted(results, key=lambda x: x["similarity"], reverse=True)
+    
+    def get_recent_context(self, limit: int = 5) -> List[Dict]:
+        """Get recent conversation context."""
+        recent_memories = self.memories[-limit:] if self.memories else []
+        return [
+            {
+                "role": mem.role,
+                "content": mem.text,
+                "timestamp": mem.timestamp.isoformat()
+            }
+            for mem in recent_memories
+        ]
+    
+    def _truncate_text(self, text: str, max_length: int) -> str:
+        """Truncate text with ellipsis."""
+        if len(text) <= max_length:
+            return text
+        return text[:max_length] + "..."
+    
+    def get_stats(self) -> Dict:
+        """Get memory statistics."""
+        latest_timestamp = None
+        if self.memories:
+            latest_timestamp = self.memories[-1].timestamp
+        
+        return {
+            "total_entries": self.total_entries,
+            "index_size_bytes": self.total_entries * self.embedding_dim * 4,
+            "embedding_dim": self.embedding_dim,
+            "latest_timestamp": latest_timestamp
+        }
+    
     def reset(self) -> None:
-        """Clear all memories and reset the FAISS index."""
+        """Reset all memories."""
         self.index = faiss.IndexFlatL2(self.embedding_dim)
         self.memories.clear()
         self.total_entries = 0
+        print("🗑️ Memory reset complete")
 
-    def get_stats(self) -> Dict:
-        """Get current memory statistics."""
+
+# MCP-aligned memory endpoints (placeholder for future MCP integration)
+class MCPMemoryServer:
+    """Placeholder MCP server endpoints for memory operations."""
+    
+    def __init__(self, memory: SemanticMemory):
+        self.memory = memory
+    
+    async def context_endpoint(self, request: Dict) -> Dict:
+        """MCP /context endpoint"""
         return {
-            "total_entries": self.total_entries,
-            "index_size_bytes": self.index.ntotal
-            * self.embedding_dim
-            * 4,  # 4 bytes per float32
-            "embedding_dim": self.embedding_dim,
-            "latest_timestamp": self.memories[-1].timestamp if self.memories else None,
+            "context": self.memory.get_recent_context(),
+            "total_memories": self.memory.total_entries
         }
-
-    def get_all_entries(self) -> List[Dict]:
-        """Get all memory entries in chronological order."""
-        return [entry.to_dict() for entry in self.memories]
+    
+    async def memory_add_endpoint(self, request: Dict) -> Dict:
+        """MCP /memory/add endpoint"""
+        text = request.get("text", "")
+        role = request.get("role", "user")
+        metadata = request.get("metadata", {})
+        
+        self.memory.add_memory(text, role, metadata)
+        return {"success": True, "message": "Memory added"}
+    
+    async def memory_search_endpoint(self, request: Dict) -> Dict:
+        """MCP /memory/search endpoint"""
+        query = request.get("query", "")
+        top_k = request.get("top_k", 3)
+        
+        results = self.memory.retrieve_similar(query, top_k)
+        return {"results": results}
