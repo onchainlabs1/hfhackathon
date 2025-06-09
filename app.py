@@ -100,7 +100,7 @@ def refresh_memory_panel() -> str:
     return agent._get_memory_panel()
 
 
-def save_api_key(api_key: str) -> Tuple[str, bool]:
+def save_api_key(api_key: str) -> str:
     """
     Save Groq API key to environment (memory only, no file write).
     
@@ -108,16 +108,16 @@ def save_api_key(api_key: str) -> Tuple[str, bool]:
         api_key: The Groq API key
         
     Returns:
-        Status message and accordion state
+        Status message
     """
     if not api_key.strip():
-        return "❌ Please enter a valid API key", True
+        return "❌ Please enter a valid API key"
     
     # Set environment variable (memory only)
     os.environ["GROQ_API_KEY"] = api_key.strip()
     
     # Note: Groq client will be initialized when processing messages (not here)
-    return "✅ API key saved successfully! Client will initialize on first message.", False
+    return "✅ API key saved successfully! Client will initialize on first message."
 
 
 def get_api_status() -> str:
@@ -307,7 +307,7 @@ with gr.Blocks(
     save_key_btn.click(
         fn=save_api_key,
         inputs=[api_key_input],
-        outputs=[api_status, api_accordion]
+        outputs=[api_status]
     )
     
     # Footer

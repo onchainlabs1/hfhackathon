@@ -36,14 +36,16 @@ class ThreadAgent:
         api_key = os.getenv("GROQ_API_KEY")
         if api_key and api_key.strip():
             try:
-                self.groq_client = Groq(api_key=api_key)
+                self.groq_client = Groq(api_key=api_key.strip())
                 print("✅ Groq client initialized")
                 return True
             except Exception as e:
                 print(f"❌ Failed to initialize Groq client: {e}")
+                self.groq_client = None
                 return False
         else:
             print("⚠️ GROQ_API_KEY not found")
+            self.groq_client = None
             return False
     
     def reload_groq_client(self) -> bool:
