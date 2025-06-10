@@ -2,7 +2,7 @@
 gradio==4.44.0
 
 # LLM Integration
-groq==0.8.0
+groq==0.4.1
 
 # Semantic Memory & Embeddings
 sentence-transformers==3.0.1
@@ -18,7 +18,7 @@ python-dotenv==1.0.1
 
 # HTTP & API Support
 requests==2.32.3
-httpx==0.27.2
+httpx==0.25.0
 
 # Data Validation & Serialization
 pydantic==2.9.2

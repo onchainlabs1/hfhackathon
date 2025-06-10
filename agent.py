@@ -44,33 +44,31 @@ class ThreadAgent:
         try:
             print("📦 Importing Groq...")
             import groq
-            print(f"📦 Groq version: {groq.__version__ if hasattr(groq, '__version__') else 'unknown'}")
+            print(f"📦 Groq library imported successfully")
             
-            print("🔧 Initializing Groq client with minimal config...")
-            # Ultra simple initialization - only API key
-            client = groq.Groq(api_key=api_key.strip())
+            print("🔧 Creating Groq client instance...")
+            # Absolutely minimal initialization
+            self.groq_client = groq.Groq(api_key=api_key.strip())
             
-            # Test if client is working
-            print("🧪 Testing client...")
-            # Just assign without testing - testing might cause issues
-            self.groq_client = client
-            print("✅ Groq client initialized successfully!")
+            print("✅ Groq client created successfully!")
             return True
             
-        except ImportError as e:
-            print(f"❌ Failed to import Groq library: {e}")
-            self.groq_client = None
-            return False
-        except TypeError as e:
-            print(f"❌ TypeError in Groq initialization: {e}")
-            print("🔍 This might be a version compatibility issue")
-            self.groq_client = None
-            return False
         except Exception as e:
-            print(f"❌ Unexpected error initializing Groq: {e}")
+            print(f"❌ Error creating Groq client: {e}")
             print(f"🔍 Error type: {type(e).__name__}")
-            self.groq_client = None
-            return False
+            print(f"🔍 Error details: {str(e)}")
+            
+            # Try alternative approach
+            print("🔄 Trying alternative initialization...")
+            try:
+                from groq import Groq as GroqClient
+                self.groq_client = GroqClient(api_key=api_key.strip())
+                print("✅ Alternative initialization successful!")
+                return True
+            except Exception as e2:
+                print(f"❌ Alternative approach also failed: {e2}")
+                self.groq_client = None
+                return False
     
     def reload_groq_client(self) -> bool:
         """Reload Groq client (useful after API key update)."""
