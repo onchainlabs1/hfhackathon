@@ -8,7 +8,8 @@ import os
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
-from groq import Groq
+# NOTE: Groq import removed from global scope to avoid cache conflicts
+# Import happens dynamically in _initialize_groq_client method
 from dotenv import load_dotenv
 
 from memory import SemanticMemory
