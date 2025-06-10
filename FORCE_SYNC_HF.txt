@@ -1,0 +1,9 @@
+FORCE SYNC - HF SPACES DEPLOYMENT TRIGGER
+Created: 2025-01-14
+Purpose: Trigger HF Spaces to pull latest changes from GitHub
+Critical fixes applied:
+- Fixed server_port to use os.getenv("PORT", 7860) 
+- Updated groq to 0.8.0
+- Updated gradio to 4.44.1
+
+This file can be deleted after successful deployment. 
