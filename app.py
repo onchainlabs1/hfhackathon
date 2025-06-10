@@ -194,6 +194,6 @@ if __name__ == "__main__":
     print("🚀 Launching Thread Agent on HF Spaces...")
     app.launch(
         server_name="0.0.0.0",
-        server_port=7860,
+        server_port=int(os.getenv("PORT", 7860)),  # 🔧 FIX: Use HF Spaces PORT env var
         show_error=True
     ) 
