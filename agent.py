@@ -32,7 +32,7 @@ class ThreadAgent:
         print("🤖 ThreadAgent initialized")
     
     def _initialize_groq_client(self) -> bool:
-        """Initialize Groq client with API key."""
+        """Initialize Groq client with API key - ultra robust version."""
         api_key = os.getenv("GROQ_API_KEY")
         print(f"🔑 API Key check: {'Found' if api_key else 'Not found'}")
         
@@ -43,35 +43,35 @@ class ThreadAgent:
         
         try:
             print("📦 Importing Groq...")
+            from groq import Groq
             import groq
             print(f"📦 Groq version: {groq.__version__}")
             
-            print("🔧 Initializing Groq client with minimal config...")
-            # Ultra-minimal initialization - only api_key parameter
-            self.groq_client = groq.Groq(api_key=api_key.strip())
+            print("🔧 Creating Groq client with ultra-minimal config...")
+            # Most minimal possible initialization
+            self.groq_client = Groq(api_key=api_key.strip())
             
-            print("✅ Groq client created successfully!")
+            print("✅ Groq client initialized successfully!")
             return True
             
-        except TypeError as e:
-            print(f"❌ TypeError in Groq initialization: {e}")
-            print("🔍 This might be a version compatibility issue")
-            # Try alternative initialization without any extra parameters
-            try:
-                print("🔄 Attempting fallback initialization...")
-                self.groq_client = groq.Groq(api_key=api_key.strip())
-                print("✅ Fallback Groq client created successfully!")
-                return True
-            except Exception as fallback_e:
-                print(f"❌ Fallback also failed: {fallback_e}")
-                self.groq_client = None
-                return False
         except Exception as e:
-            print(f"❌ Error creating Groq client: {e}")
+            print(f"❌ Failed to initialize Groq client: {e}")
             print(f"🔍 Error type: {type(e).__name__}")
             print(f"🔍 Error details: {str(e)}")
-            self.groq_client = None
-            return False
+            
+            # Try ultra-simple fallback with just positional arg
+            try:
+                print("🔄 Attempting ultra-simple fallback...")
+                from groq import Groq
+                # Different approach - use kwargs explicitly
+                client_kwargs = {"api_key": api_key.strip()}
+                self.groq_client = Groq(**client_kwargs)
+                print("✅ Groq client created with fallback method!")
+                return True
+            except Exception as fallback_e:
+                print(f"❌ All Groq initialization methods failed: {fallback_e}")
+                self.groq_client = None
+                return False
     
     def reload_groq_client(self) -> bool:
         """Reload Groq client (useful after API key update)."""
