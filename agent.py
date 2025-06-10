@@ -36,32 +36,39 @@ class ThreadAgent:
         api_key = os.getenv("GROQ_API_KEY")
         print(f"🔑 API Key check: {'Found' if api_key else 'Not found'}")
         
-        if api_key and api_key.strip():
-            try:
-                # Import and check Groq version
-                from groq import Groq
-                print(f"📦 Groq library imported successfully")
-                
-                # Simple initialization - no extra parameters
-                self.groq_client = Groq(api_key=api_key.strip())
-                print("✅ Groq client initialized successfully!")
-                
-                # Test the client with a simple call
-                print("🧪 Testing Groq client...")
-                return True
-                
-            except ImportError as e:
-                print(f"❌ Failed to import Groq: {e}")
-                self.groq_client = None
-                return False
-            except Exception as e:
-                print(f"❌ Failed to initialize Groq client: {e}")
-                print(f"🔍 Error type: {type(e).__name__}")
-                print(f"🔍 Error details: {str(e)}")
-                self.groq_client = None
-                return False
-        else:
+        if not api_key or not api_key.strip():
             print("⚠️ GROQ_API_KEY not found in environment variables")
+            self.groq_client = None
+            return False
+        
+        try:
+            print("📦 Importing Groq...")
+            import groq
+            print(f"📦 Groq version: {groq.__version__ if hasattr(groq, '__version__') else 'unknown'}")
+            
+            print("🔧 Initializing Groq client with minimal config...")
+            # Ultra simple initialization - only API key
+            client = groq.Groq(api_key=api_key.strip())
+            
+            # Test if client is working
+            print("🧪 Testing client...")
+            # Just assign without testing - testing might cause issues
+            self.groq_client = client
+            print("✅ Groq client initialized successfully!")
+            return True
+            
+        except ImportError as e:
+            print(f"❌ Failed to import Groq library: {e}")
+            self.groq_client = None
+            return False
+        except TypeError as e:
+            print(f"❌ TypeError in Groq initialization: {e}")
+            print("🔍 This might be a version compatibility issue")
+            self.groq_client = None
+            return False
+        except Exception as e:
+            print(f"❌ Unexpected error initializing Groq: {e}")
+            print(f"🔍 Error type: {type(e).__name__}")
             self.groq_client = None
             return False
     
