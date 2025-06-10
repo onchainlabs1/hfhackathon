@@ -1,6 +1,6 @@
 sdk: gradio
 python_version: 3.10
-app_file: app.py
+app_file: space_deploy.py
 preload:
   - sentence-transformers/all-MiniLM-L6-v2
-# Final version with complete MCP-aligned architecture 
+# HF Spaces optimized version with faster loading 

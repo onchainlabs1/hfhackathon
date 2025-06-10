@@ -255,7 +255,8 @@ with gr.Blocks(
                 type="messages",
                 height=500,
                 show_copy_button=True,
-                show_share_button=False
+                show_share_button=False,
+                value=[]
             )
             
             # Input Row
