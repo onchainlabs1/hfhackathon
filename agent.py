@@ -36,15 +36,17 @@ class ThreadAgent:
         api_key = os.getenv("GROQ_API_KEY")
         if api_key and api_key.strip():
             try:
-                self.groq_client = Groq(api_key=api_key.strip())
-                print("✅ Groq client initialized")
+                # Clean initialization without extra parameters
+                import groq
+                self.groq_client = groq.Groq(api_key=api_key.strip())
+                print("✅ Groq client initialized successfully")
                 return True
             except Exception as e:
                 print(f"❌ Failed to initialize Groq client: {e}")
                 self.groq_client = None
                 return False
         else:
-            print("⚠️ GROQ_API_KEY not found")
+            print("⚠️ GROQ_API_KEY not found in environment")
             self.groq_client = None
             return False
     
@@ -212,17 +214,29 @@ Key traits:
         Returns:
             Fallback response
         """
-        response = f"I understand you're discussing: {user_message}\n\n"
-        response += "⚠️ Creative reasoning is limited (API key needed for full functionality).\n\n"
+        response = f"**🤖 Thread Agent Response**\n\n"
+        response += f"📝 **Your Message:** {user_message}\n\n"
+        response += "⚠️ **Status:** Creative reasoning is limited (API key needed for full functionality)\n\n"
         
         if similar_memories:
-            response += "🧠 I found these related memories:\n"
+            response += "🧠 **Related Memories Found:**\n\n"
             for i, mem in enumerate(similar_memories, 1):
                 text = mem.get('text_preview', '')
                 similarity = mem.get('similarity', 0)
-                response += f"{i}. {text} (relevance: {similarity:.3f})\n"
+                timestamp = mem.get('formatted_timestamp', 'unknown')
+                role = mem.get('role', 'unknown')
+                role_emoji = "👤" if role == "user" else "🤖"
+                
+                response += f"**{i}.** {role_emoji} {text}\n"
+                response += f"    📊 Relevance: **{similarity:.3f}** | 📅 {timestamp}\n\n"
+        else:
+            response += "🔍 **No similar memories found yet.** Continue the conversation to build context!\n\n"
         
-        response += "\n💡 To enable full creative responses, please configure your Groq API key."
+        response += "---\n\n"
+        response += "💡 **To unlock full creative capabilities:**\n"
+        response += "1. Get your free API key from [console.groq.com](https://console.groq.com)\n"
+        response += "2. Configure it in the 🔐 Groq API Configuration panel\n"
+        response += "3. Enjoy enhanced responses with Llama3-70B!"
         
         return response
     

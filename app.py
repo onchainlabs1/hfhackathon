@@ -160,24 +160,72 @@ custom_css = """
     height: 400px;
     overflow-y: auto;
     padding: 15px;
-    background-color: #f8f9fa;
+    background-color: #1f2937 !important;
+    color: #f9fafb !important;
     border-radius: 8px;
-    border: 1px solid #dee2e6;
+    border: 1px solid #374151;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.memory-panel h1, .memory-panel h2, .memory-panel h3, .memory-panel h4 {
+    color: #60a5fa !important;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+.memory-panel strong {
+    color: #fbbf24 !important;
+}
+
+.memory-panel p {
+    color: #e5e7eb !important;
+    margin: 0.5em 0;
 }
 
 .stats-panel {
     height: 300px;
     overflow-y: auto;
     padding: 15px;
-    background-color: #f1f3f4;
+    background-color: #111827 !important;
+    color: #f3f4f6 !important;
     border-radius: 8px;
-    border: 1px solid #dadce0;
+    border: 1px solid #374151;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+}
+
+.stats-panel h1, .stats-panel h2, .stats-panel h3, .stats-panel h4 {
+    color: #34d399 !important;
+}
+
+.stats-panel strong {
+    color: #fde047 !important;
 }
 
 .api-status {
-    padding: 10px;
-    border-radius: 6px;
-    margin-bottom: 10px;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    background-color: #1f2937 !important;
+    color: #f9fafb !important;
+    border: 1px solid #374151;
+    font-weight: 500;
+}
+
+/* Dark theme for better contrast */
+.gradio-container {
+    background-color: #0f172a !important;
+}
+
+/* Improve button visibility */
+button {
+    font-weight: 600 !important;
+}
+
+/* Better text visibility in all markdown areas */
+.markdown {
+    color: #f1f5f9 !important;
 }
 """
 
