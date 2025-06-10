@@ -116,8 +116,13 @@ def save_api_key(api_key: str) -> str:
     # Set environment variable (memory only)
     os.environ["GROQ_API_KEY"] = api_key.strip()
     
-    # Note: Groq client will be initialized when processing messages (not here)
-    return "✅ API key saved successfully! Client will initialize on first message."
+    # Force reload of the agent's Groq client
+    success = agent.reload_groq_client()
+    
+    if success:
+        return "✅ API key saved and Groq client initialized successfully!"
+    else:
+        return "⚠️ API key saved but client initialization failed. Check logs for details."
 
 
 def get_api_status() -> str:

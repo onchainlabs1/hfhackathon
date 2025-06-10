@@ -34,19 +34,34 @@ class ThreadAgent:
     def _initialize_groq_client(self) -> bool:
         """Initialize Groq client with API key."""
         api_key = os.getenv("GROQ_API_KEY")
+        print(f"🔑 API Key check: {'Found' if api_key else 'Not found'}")
+        
         if api_key and api_key.strip():
             try:
-                # Clean initialization without extra parameters
-                import groq
-                self.groq_client = groq.Groq(api_key=api_key.strip())
-                print("✅ Groq client initialized successfully")
+                # Import and check Groq version
+                from groq import Groq
+                print(f"📦 Groq library imported successfully")
+                
+                # Simple initialization - no extra parameters
+                self.groq_client = Groq(api_key=api_key.strip())
+                print("✅ Groq client initialized successfully!")
+                
+                # Test the client with a simple call
+                print("🧪 Testing Groq client...")
                 return True
+                
+            except ImportError as e:
+                print(f"❌ Failed to import Groq: {e}")
+                self.groq_client = None
+                return False
             except Exception as e:
                 print(f"❌ Failed to initialize Groq client: {e}")
+                print(f"🔍 Error type: {type(e).__name__}")
+                print(f"🔍 Error details: {str(e)}")
                 self.groq_client = None
                 return False
         else:
-            print("⚠️ GROQ_API_KEY not found in environment")
+            print("⚠️ GROQ_API_KEY not found in environment variables")
             self.groq_client = None
             return False
     
