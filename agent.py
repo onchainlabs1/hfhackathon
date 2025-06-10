@@ -33,7 +33,7 @@ class ThreadAgent:
         print("🤖 ThreadAgent initialized")
     
     def _initialize_groq_client(self) -> bool:
-        """Initialize Groq client with bulletproof error handling."""
+        """Initialize Groq client with enhanced error handling for v0.11.0+."""
         api_key = os.getenv("GROQ_API_KEY")
         print(f"🔑 API Key check: {'Found' if api_key else 'Not found'}")
         
@@ -42,41 +42,50 @@ class ThreadAgent:
             self.groq_client = None
             return False
         
-        # Clear any import cache
-        import sys
-        if 'groq' in sys.modules:
-            del sys.modules['groq']
-        
         try:
-            print("📦 Fresh import of Groq...")
+            print("📦 Importing Groq...")
             import groq
             print(f"📦 Groq version: {groq.__version__}")
             
-            print("🔧 Creating Groq client (bulletproof method)...")
-            # Use the class directly with minimal parameters
-            self.groq_client = groq.Groq(api_key=api_key.strip())
+            print("🔧 Initializing Groq client with minimal config...")
+            # Use only the essential parameters for v0.11.0 compatibility
+            self.groq_client = groq.Groq(
+                api_key=api_key.strip()
+            )
             
             print("✅ Groq client created successfully!")
             return True
             
-        except Exception as e:
-            print(f"❌ Primary Groq init failed: {e}")
-            
-            # Ultimate fallback - try different import strategy
-            try:
-                print("🔄 Ultimate fallback method...")
-                import importlib
-                groq_module = importlib.import_module('groq')
-                GroqClass = getattr(groq_module, 'Groq')
-                self.groq_client = GroqClass(api_key=api_key.strip())
-                print("✅ Groq client created with fallback!")
-                return True
+        except TypeError as e:
+            if "proxies" in str(e):
+                print(f"❌ TypeError in Groq initialization: {e}")
+                print("🔍 This might be a version compatibility issue")
                 
-            except Exception as final_e:
-                print(f"❌ All Groq methods exhausted: {final_e}")
-                print("🚨 Groq client unavailable - fallback responses only")
-                self.groq_client = None
-                return False
+                # Try with alternative initialization for older versions
+                try:
+                    print("🔄 Trying alternative Groq initialization...")
+                    import groq
+                    # Force reimport to clear any cached issues
+                    import importlib
+                    importlib.reload(groq)
+                    
+                    self.groq_client = groq.Groq(api_key=api_key.strip())
+                    print("✅ Alternative Groq initialization successful!")
+                    return True
+                    
+                except Exception as fallback_e:
+                    print(f"❌ Alternative initialization also failed: {fallback_e}")
+                    self.groq_client = None
+                    return False
+            else:
+                raise e
+                
+        except Exception as e:
+            print(f"❌ Failed to initialize Groq client: {e}")
+            print(f"🔍 Error type: {type(e).__name__}")
+            print(f"🔍 Error details: {str(e)}")
+            self.groq_client = None
+            return False
     
     def reload_groq_client(self) -> bool:
         """Reload Groq client (useful after API key update)."""
