@@ -1,6 +1,6 @@
 sdk: gradio
 python_version: 3.10
-app_file: space_deploy.py
+app_file: app.py
 preload:
   - sentence-transformers/all-MiniLM-L6-v2
-# HF Spaces optimized version with faster loading 
+# HF Spaces optimized version - timeout fix 
