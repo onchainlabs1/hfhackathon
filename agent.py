@@ -43,16 +43,29 @@ class ThreadAgent:
         
         try:
             print("📦 Importing Groq...")
-            from groq import Groq
-            print("📦 Groq library imported successfully")
+            import groq
+            print(f"📦 Groq version: {groq.__version__}")
             
-            print("🔧 Creating Groq client instance...")
-            # Simple initialization with just API key
-            self.groq_client = Groq(api_key=api_key.strip())
+            print("🔧 Initializing Groq client with minimal config...")
+            # Ultra-minimal initialization - only api_key parameter
+            self.groq_client = groq.Groq(api_key=api_key.strip())
             
             print("✅ Groq client created successfully!")
             return True
             
+        except TypeError as e:
+            print(f"❌ TypeError in Groq initialization: {e}")
+            print("🔍 This might be a version compatibility issue")
+            # Try alternative initialization without any extra parameters
+            try:
+                print("🔄 Attempting fallback initialization...")
+                self.groq_client = groq.Groq(api_key=api_key.strip())
+                print("✅ Fallback Groq client created successfully!")
+                return True
+            except Exception as fallback_e:
+                print(f"❌ Fallback also failed: {fallback_e}")
+                self.groq_client = None
+                return False
         except Exception as e:
             print(f"❌ Error creating Groq client: {e}")
             print(f"🔍 Error type: {type(e).__name__}")

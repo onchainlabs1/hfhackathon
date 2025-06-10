@@ -2,7 +2,7 @@
 gradio==4.44.1
 
 # LLM Integration
-groq==0.8.0
+groq==0.11.0
 
 # Semantic Memory & Embeddings
 sentence-transformers==3.0.1
