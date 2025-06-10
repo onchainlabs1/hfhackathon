@@ -65,6 +65,10 @@ def clear_memory() -> Tuple[List[dict], str]:
     memory_panel = agent.clear_memory()
     return [], memory_panel
 
+def refresh_memory_panel() -> str:
+    """Refresh memory panel content."""
+    return agent._get_memory_panel()
+
 # Create the Gradio interface
 with gr.Blocks(
     title="Thread - Creative Memory Agent",
@@ -109,6 +113,7 @@ with gr.Blocks(
             with gr.Row():
                 stats_btn = gr.Button("📊 Stats", variant="secondary")
                 reset_btn = gr.Button("🗑️ Reset", variant="secondary")
+                refresh_btn = gr.Button("🔄 Refresh", variant="secondary")
         
         with gr.Column(scale=1):
             # Memory Panel
@@ -118,8 +123,9 @@ with gr.Blocks(
                 elem_classes=["memory-panel"]
             )
             
-            # API Configuration
-            with gr.Accordion("🔐 Groq API Configuration", open=False):
+            # API Configuration Accordion
+            api_accordion = gr.Accordion("🔐 Groq API Configuration", open=False)
+            with api_accordion:
                 gr.Markdown("""
                 **To enable full creative capabilities:**
                 1. Get your free API key from [console.groq.com](https://console.groq.com)
@@ -139,7 +145,7 @@ with gr.Blocks(
                     value="🔴 **Status:** Groq API not connected"
                 )
     
-    # Event handlers
+    # Event handlers with proper outputs
     send_btn.click(
         fn=process_chat_message,
         inputs=[msg_input, chatbot],
@@ -154,18 +160,26 @@ with gr.Blocks(
     
     stats_btn.click(
         fn=get_memory_stats,
-        outputs=[memory_panel]
+        inputs=None,
+        outputs=memory_panel
     )
     
     reset_btn.click(
         fn=clear_memory,
+        inputs=None,
         outputs=[chatbot, memory_panel]
+    )
+    
+    refresh_btn.click(
+        fn=refresh_memory_panel,
+        inputs=None,
+        outputs=memory_panel
     )
     
     save_key_btn.click(
         fn=save_api_key,
-        inputs=[api_key_input],
-        outputs=[api_status]
+        inputs=api_key_input,
+        outputs=api_status
     )
     
     gr.Markdown("""

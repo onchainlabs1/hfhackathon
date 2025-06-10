@@ -1,8 +1,8 @@
 # Core Gradio Framework
-gradio==4.44.0
+gradio==4.44.1
 
 # LLM Integration
-groq==0.4.1
+groq==0.8.0
 
 # Semantic Memory & Embeddings
 sentence-transformers==3.0.1

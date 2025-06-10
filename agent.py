@@ -43,12 +43,12 @@ class ThreadAgent:
         
         try:
             print("📦 Importing Groq...")
-            import groq
-            print(f"📦 Groq library imported successfully")
+            from groq import Groq
+            print("📦 Groq library imported successfully")
             
             print("🔧 Creating Groq client instance...")
-            # Absolutely minimal initialization
-            self.groq_client = groq.Groq(api_key=api_key.strip())
+            # Simple initialization with just API key
+            self.groq_client = Groq(api_key=api_key.strip())
             
             print("✅ Groq client created successfully!")
             return True
@@ -57,18 +57,8 @@ class ThreadAgent:
             print(f"❌ Error creating Groq client: {e}")
             print(f"🔍 Error type: {type(e).__name__}")
             print(f"🔍 Error details: {str(e)}")
-            
-            # Try alternative approach
-            print("🔄 Trying alternative initialization...")
-            try:
-                from groq import Groq as GroqClient
-                self.groq_client = GroqClient(api_key=api_key.strip())
-                print("✅ Alternative initialization successful!")
-                return True
-            except Exception as e2:
-                print(f"❌ Alternative approach also failed: {e2}")
-                self.groq_client = None
-                return False
+            self.groq_client = None
+            return False
     
     def reload_groq_client(self) -> bool:
         """Reload Groq client (useful after API key update)."""
