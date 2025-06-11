@@ -28,7 +28,9 @@ tags:
 
 ## 🎥 Demo Video
 
-[Coming Soon] Watch Thread in action, demonstrating its memory capabilities and topic detection.
+🎬 **[Watch Thread Agent in Action](https://www.youtube.com/watch?v=HZ-62Hy7Xbw)** 
+
+See Thread Agent demonstrating its memory capabilities and conversation continuity features in this comprehensive walkthrough.
 
 ## 🎯 **Core Features**
 
