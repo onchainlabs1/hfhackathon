@@ -162,6 +162,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [SentenceTransformers](https://www.sbert.net/) for semantic embeddings
 - [Gradio](https://gradio.app/) for the web interface framework
 
+## 🏅 Certificate of Participation
+
+![Certificate Gradio Agents & MCP Hackathon 2025](Certificate-AgentsMCP-Hackathon-1753216602092_2946.png)
+
+This certificate recognizes the successful participation and completion of the Gradio Agents & MCP Hackathon 2025 by **Fabio Figueiredo** with the project:
+
+**🧠 Thread – The Agent that Connects the Dots**
+
 ---
 
 **Tags**: `agent-demo-track`, `conversational-ai`, `semantic-memory`, `groq`, `faiss`, `gradio` 
